@@ -13,8 +13,6 @@ from youtube_transcript_api import YouTubeTranscriptApi
 
 api_key = os.getenv('API_KEY')
 
-key = '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'
-
 youtube_api_key = "AIzaSyDBdkgyTOyrqEzdy_D4FQBiywDByzN5ukM"
 
 client = OpenAI(api_key=key)
