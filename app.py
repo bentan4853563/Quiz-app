@@ -15,7 +15,7 @@ api_key = os.getenv('API_KEY')
 
 youtube_api_key = "AIzaSyDBdkgyTOyrqEzdy_D4FQBiywDByzN5ukM"
 
-client = OpenAI(api_key=key)
+client = OpenAI(api_key=api_key)
 
 app = Flask(__name__)
 
