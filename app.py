@@ -197,7 +197,7 @@ def fetch_data_from_url():
     url = data['url']
 
     start = time.time()
-
+    print(start)
     # Extract text from the URL
     if is_youtube_url(url):
         # Extract video ID from the YouTube URL
@@ -228,12 +228,9 @@ def fetch_data_from_url():
     # Combine the extracted text with the video transcript
     combined_text = extracted_text + " " + video_transcript
 
-    print(combined_text)
-
     summary_content = summarize(combined_text)
     question_content = analyze(combined_text)
 
-    print(summary_content)
     media = "video" if is_youtube_url(url) else "web"
     json_string = json.dumps({
         "summary_content": summary_content,
