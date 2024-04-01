@@ -1,3 +1,4 @@
+import io
 import os
 import re
 import time
@@ -5,15 +6,20 @@ import json
 import requests
 import unicodedata
 from bs4 import BeautifulSoup
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
+from werkzeug.utils import secure_filename
+import PyPDF2
 from openai import OpenAI
 from flask_cors import CORS
-
+from dotenv import load_dotenv
 from youtube_transcript_api import YouTubeTranscriptApi
 
-api_key = os.getenv('API_KEY')
 
-youtube_api_key = "AIzaSyDBdkgyTOyrqEzdy_D4FQBiywDByzN5ukM"
+ALLOWED_EXTENSIONS = {'pdf'}
+
+load_dotenv()
+
+api_key = os.getenv('OPENAI_API_KEY')
 
 client = OpenAI(api_key=api_key)
 
@@ -21,8 +27,7 @@ app = Flask(__name__)
 
 CORS(app)
 
-def get_transcript():
-    video_id = 'iyabl4dlxbY'
+def get_transcript(video_id):
 
     transcript = YouTubeTranscriptApi.get_transcript(video_id)
 
@@ -32,6 +37,23 @@ def get_transcript():
 def is_youtube_url(url):
     return 'youtube.com' in url or 'youtu.be' in url
 
+def extract_hashtag(text):
+    model = "gpt-4-turbo-preview"
+
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": f"Your role is to extract keywords from the the user's message. Keywords shoud be a list of hashtag."},
+            {"role": "user", "content": text},
+
+        ]
+    )
+
+    output = []
+    for res in response.choices[0].message.tool_calls:
+        output.append(res.function.arguments)
+    
+    return output
 
 def summarize(text):
      
@@ -78,24 +100,6 @@ def summarize(text):
             {"role": "user", "content": text},
         ],
         tools=tools
-    )
-
-    output = []
-    for res in response.choices[0].message.tool_calls:
-        output.append(res.function.arguments)
-    
-    return output
-
-def extract_hashtag(text):
-    model = "gpt-4-turbo-preview"
-
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": f"Your role is to extract keywords from the the user's message. Keywords shoud be a list of hashtag."},
-            {"role": "user", "content": text},
-
-        ]
     )
 
     output = []
@@ -188,8 +192,6 @@ def extract_cover_image(url):
     return None
 
 @app.route('/fetch', methods=['POST'])
-
-
 def fetch_data_from_url():
     data = request.get_json()
     url = data['url']
@@ -220,7 +222,6 @@ def fetch_data_from_url():
 
     cover_image_url = extract_cover_image(url)
 
-
     text_elements = [tag.get_text() for tag in soup.find_all(['p', 'span', 'a', 'li'])]
     extracted_text = ' '.join(text_elements).strip()
 
@@ -233,18 +234,72 @@ def fetch_data_from_url():
     question_content = analyze(combined_text)
 
     print(summary_content)
-
+    media = "video" if is_youtube_url(url) else "web"
     json_string = json.dumps({
         "summary_content": summary_content,
         "questions": question_content,
         "image": cover_image_url,
-        "url": url
+        "url": url,
+        "media": media
     })
 
     end = time.time()
     print(end - start, "s")
 
     return (json_string)
+
+@app.route('/upload_pdf', methods=['POST'])
+def upload_pdf():
+    # Check if the post request has the file part
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+
+    file = request.files['file']
+    
+    # If user does not select file or submits an empty part without filename
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    
+    if file and allowed_file(file.filename):
+        # Secure the filename
+        start = time.time()
+        filename = secure_filename(file.filename)
+        
+        # Read the PDF content
+        pdf_reader = PyPDF2.PdfReader(io.BytesIO(file.read()))
+        text = ""
+        for page in pdf_reader.pages:
+            text += page.extract_text() + " "
+        
+        # Do something with the extracted text
+        # For example, returning it
+        print(text)
+        
+        summary_content = summarize(text)
+        question_content = analyze(text)
+
+        print(summary_content, question_content)
+
+        json_string = json.dumps({
+            "summary_content": summary_content,
+            "questions": question_content,
+            # "image": cover_image_url,
+            "fileName": filename,
+            "media": "PDF"
+        })
+
+        end = time.time()
+        print(end - start, "s")
+
+        return (json_string)
+
+    return jsonify({'error': 'Invalid file extension'}), 400
+
+def allowed_file(filename):
+  return '.' in filename and \
+    filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5173)
