@@ -241,7 +241,7 @@ def fetch_data_from_url():
     })
 
     end = time.time()
-    print(end - start, "s")
+    print(json_string, end - start, "s")
 
     return (json_string)
 
