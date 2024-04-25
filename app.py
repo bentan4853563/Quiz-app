@@ -233,13 +233,9 @@ def fetch_data_from_url():
 
         cover_image_url = extract_cover_image(url)
 
-        # text_elements = [tag.get_text() for tag in soup.find_all(['p', 'span', 'a', 'li'])]
-        # combined_text = ''.join(text_elements).strip()
-        
-        text_elements = soup.find_all(text=True)
-        combined_text = ' '.join(text.strip() for text in text_elements if text.strip())
-
-        
+        text_elements = [tag.get_text() for tag in soup.find_all(['p', 'span', 'a', 'li'])]
+        combined_text = ''.join(text_elements).strip()
+    
 
     print(combined_text)
 
