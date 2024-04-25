@@ -101,7 +101,7 @@ def summarize(text):
         ],
         tools=tools
     )
-
+    print(response)
     output = []
     for res in response.choices[0].message.tool_calls:
         output.append(res.function.arguments)
@@ -255,7 +255,7 @@ def fetch_data_from_url():
     end = time.time()
     print(end - start, "s")
 
-    return (json_string)
+    # return (json_string)
 
 @app.route('/upload_pdf', methods=['POST'])
 def upload_pdf():
