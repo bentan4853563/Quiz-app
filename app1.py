@@ -146,6 +146,10 @@ def analyze(text):
     ]
     
     model = "gpt-4-turbo-preview"
+
+    sample_result = """
+    {"question": "What is the primary color of the sky during a clear day?","answer": ["Green", "Blue", "Red"],"correctanswer": "Blue","explanation": "The sky appears blue during a clear day due to the scattering of shorter wavelengths of light by molecules in the Earth's atmosphere.}
+    """
     
     response = client.chat.completions.create(
         model=model,
@@ -192,15 +196,11 @@ def fetch_data_from_url():
     data = request.get_json()
     url = data['url']
 
-    # Initialize variables for the extracted text and media type
-    combined_text = ""
-    media = None
-    cover_image_url = None
-    
     start = time.time()
-    
+    print(start)
     # Extract text from the URL
     if is_youtube_url(url):
+        print(url)
         # Extract video ID from the YouTube URL
         video_id_match = re.search(r'(?:v=|\/)([0-9A-Za-z_-]{11})', url)
         if video_id_match:
@@ -208,56 +208,41 @@ def fetch_data_from_url():
             try:
                 # Get the transcript from the YouTube video
                 transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
-                combined_text = ''.join(entry['text'] for entry in transcript_list)
+                video_transcript = ' '.join(entry['text'] for entry in transcript_list)
             except Exception as e:
                 return jsonify({"error": str(e)}), 400
         else:
             return jsonify({"error": "No YouTube video ID found in URL"}), 400
-
-    elif url.lower().endswith('.pdf'):
-        media = "PDF"
-        try:
-            response = requests.get(url)
-            response.raise_for_status()  # Ensure we capture HTTP errors
-            
-            pdf_reader = PyPDF2.PdfReader(io.BytesIO(response.content))
-            combined_text = "".join(page.extract_text() + " " for page in pdf_reader.pages)
-            
-        except Exception as e:
-            return jsonify({"error": str(e)}), 400
     else:
-        media = "web"
-        page = requests.get(url)
+        video_transcript = ""
 
-        soup = BeautifulSoup(page.content, 'html.parser')
+    # Extract text from the URL
+    page = requests.get(url)
 
-        cover_image_url = extract_cover_image(url)
+    soup = BeautifulSoup(page.content, 'html.parser')
 
-        # text_elements = [tag.get_text() for tag in soup.find_all(['p', 'span', 'a', 'li'])]
-        # combined_text = ''.join(text_elements).strip()
-        
-        text_elements = soup.find_all(text=True)
-        combined_text = ' '.join(text.strip() for text in text_elements if text.strip())
+    cover_image_url = extract_cover_image(url)
 
-        
+    text_elements = [tag.get_text() for tag in soup.find_all(['p', 'span', 'a', 'li'])]
+    extracted_text = ' '.join(text_elements).strip()
 
-    print(combined_text)
+    # Combine the extracted text with the video transcript
+    combined_text = extracted_text + " " + video_transcript
 
     summary_content = summarize(combined_text)
     question_content = analyze(combined_text)
-    
+
+    media = "video" if is_youtube_url(url) else "web"
     json_string = json.dumps({
         "summary_content": summary_content,
         "questions": question_content,
-        "image": cover_image_url if cover_image_url is not None else "",
+        "image": cover_image_url,
         "url": url,
         "media": media
     })
-    
-    print(json_string+"\n")
 
     end = time.time()
-    print(end - start, "s")
+    print(json_string, end - start, "s")
 
     return (json_string)
 
@@ -296,6 +281,7 @@ def upload_pdf():
         json_string = json.dumps({
             "summary_content": summary_content,
             "questions": question_content,
+            # "image": cover_image_url,
             "fileName": filename,
             "media": "PDF"
         })
