@@ -101,7 +101,6 @@ def summarize(text):
         ],
         tools=tools
     )
-    print(response)
     output = []
     for res in response.choices[0].message.tool_calls:
         output.append(res.function.arguments)
