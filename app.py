@@ -254,7 +254,7 @@ def fetch_data_from_url():
     end = time.time()
     print(end - start, "s")
 
-    # return (json_string)
+    return (json_string)
 
 @app.route('/upload_pdf', methods=['POST'])
 def upload_pdf():
