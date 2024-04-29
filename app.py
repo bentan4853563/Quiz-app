@@ -309,4 +309,4 @@ def allowed_file(filename):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5173)
+    app.run(host='0.0.0.0', port=5173, ssl_context=('/etc/letsencrypt/live/lurny.net/cert.pem', '/etc/letsencrypt/live/lurny.net/privkey.pem'))
