@@ -1,8 +1,12 @@
+"""Module providing a system that extracting data from PDF and process by OpenAI"""
+
 import io
 import os
 import re
 import time
 import json
+import logging
+from logging.handlers import RotatingFileHandler
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask, request, jsonify, g
@@ -26,14 +30,30 @@ app = Flask(__name__)
 
 CORS(app)
 
+# Configure the logger
+app.logger.setLevel(logging.INFO)
+
+# Create a RotatingFileHandler to log to a file
+LOG_FILE = 'app.log'
+file_handler = RotatingFileHandler(LOG_FILE, maxBytes=10000, backupCount=5)
+file_handler.setFormatter(logging.Formatter(
+    '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
+app.logger.addHandler(file_handler)
+
+# Log a message to test the logging setup
+app.logger.info('Application startup')
+
+
 @app.before_request
 def before_request():
     """Function before_request"""
+    app.logger.info(f"Incoming request: {request.method} {request.url}")
     g.openai_client = OpenAI(api_key=api_key)
 
 @app.after_request
 def after_request(response):
     """Function after_request"""    
+    app.logger.info(f"Outgoing response: {response.status_code}")
     if hasattr(g, 'openai_client'):
         g.openai_client.close()
     return response
@@ -183,7 +203,9 @@ def analyze(text, client):
 
 
 def extract_cover_image(url):
-    page = requests.get(url)
+    """Function extract_cover_image"""    
+    
+    page = requests.get(url, timeout=10)
     soup = BeautifulSoup(page.content, "html.parser")
     cover_image = soup.find(
         "meta", property="og:image"
@@ -201,83 +223,88 @@ def extract_cover_image(url):
 
 @app.route("/fetch", methods=["POST"])
 def fetch_data_from_url():
-    """Function fetch_data_from_url"""    
-    
-    data = request.get_json()
-    url = data["url"]
+    """Function fetch_data_from_url"""       
+    try:
+        data = request.get_json()
+        url = data["url"]
+        app.logger.info(f"Processing URL: {url}")
 
-    # Initialize variables for the extracted text and media type
-    combined_text = ""
-    media = None
-    cover_image_url = None
+        # Initialize variables for the extracted text and media type
+        combined_text = ""
+        media = None
+        cover_image_url = None
 
-    start = time.time()
+        start = time.time()
 
-    openai_client = g.openai_client
-    # Extract text from the URL
-    if is_youtube_url(url):
-        # Extract video ID from the YouTube URL
-        video_id_match = re.search(r"(?:v=|\/)([0-9A-Za-z_-]{11})", url)
-        if video_id_match:
-            video_id = video_id_match.group(1)
+        openai_client = g.openai_client
+        # Extract text from the URL
+        if is_youtube_url(url):
+            # Extract video ID from the YouTube URL
+            video_id_match = re.search(r"(?:v=|\/)([0-9A-Za-z_-]{11})", url)
+            if video_id_match:
+                video_id = video_id_match.group(1)
+                try:
+                    # Get the transcript from the YouTube video
+                    transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+                    combined_text = "".join(entry["text"] for entry in transcript_list)
+                    print("Video script", combined_text)
+                except Exception as e:
+                    return jsonify({"error": str(e)}), 400
+            else:
+                return jsonify({"error": "No YouTube video ID found in URL"}), 400
+
+        elif url.lower().endswith(".pdf"):
+            media = "PDF"
             try:
-                # Get the transcript from the YouTube video
-                transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
-                combined_text = "".join(entry["text"] for entry in transcript_list)
+                response = requests.get(url, timeout=10)
+                response.raise_for_status()  # Ensure we capture HTTP errors
+
+                pdf_reader = PyPDF2.PdfReader(io.BytesIO(response.content))
+                combined_text = "".join(
+                    page.extract_text() + " " for page in pdf_reader.pages
+                )
+
             except Exception as e:
                 return jsonify({"error": str(e)}), 400
         else:
-            return jsonify({"error": "No YouTube video ID found in URL"}), 400
+            media = "web"
+            page = requests.get(url, timeout=10)
 
-    elif url.lower().endswith(".pdf"):
-        media = "PDF"
-        try:
-            response = requests.get(url, timeout=10)
-            response.raise_for_status()  # Ensure we capture HTTP errors
+            soup = BeautifulSoup(page.content, "html.parser")
 
-            pdf_reader = PyPDF2.PdfReader(io.BytesIO(response.content))
-            combined_text = "".join(
-                page.extract_text() + " " for page in pdf_reader.pages
-            )
+            cover_image_url = extract_cover_image(url)
 
-        except Exception as e:
-            return jsonify({"error": str(e)}), 400
-    else:
-        media = "web"
-        page = requests.get(url, timeout=10)
+            text_elements = [
+                tag.get_text() for tag in soup.find_all(["p", "span", "a", "li"])
+            ]
+            combined_text = "".join(text_elements).strip()
 
-        soup = BeautifulSoup(page.content, "html.parser")
+        print(combined_text)
 
-        cover_image_url = extract_cover_image(url)
+        summary_content = summarize(combined_text, openai_client)
+        question_content = analyze(combined_text, openai_client)
 
-        text_elements = [
-            tag.get_text() for tag in soup.find_all(["p", "span", "a", "li"])
-        ]
-        combined_text = "".join(text_elements).strip()
+        json_string = json.dumps(
+            {
+                "summary_content": summary_content,
+                "questions": question_content,
+                "image": cover_image_url if cover_image_url is not None else "",
+                "url": url,
+                "media": media,
+            }
+        )
 
-    print(combined_text)
+        print(json_string + "\n")
 
-    summary_content = summarize(combined_text, openai_client)
-    question_content = analyze(combined_text, openai_client)
+        end = time.time()
+        print(end - start, "s")
 
-    json_string = json.dumps(
-        {
-            "summary_content": summary_content,
-            "questions": question_content,
-            "image": cover_image_url if cover_image_url is not None else "",
-            "url": url,
-            "media": media,
-        }
-    )
+        return json_string
 
-    print(json_string + "\n")
-
-    end = time.time()
-    print(end - start, "s")
-
-    return json_string
-
-
+    except Exception as e:
+        app.logger.error(f"Error occurred: {e}")
+        return jsonify({"error": str(e)}), 500
+    
 @app.route("/upload_pdf", methods=["POST"])
 def upload_pdf():
     """Function upload_pdf"""    
@@ -330,6 +357,8 @@ def upload_pdf():
 
 
 def allowed_file(filename):
+    """Function allowed_file"""    
+    
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
