@@ -177,8 +177,9 @@ def analyze(text, client):
         }
     ]
 
-    model = "gpt-4-1106-preview"
     print("text => ", text)
+    
+    model = "gpt-4-1106-preview"
     response = client.chat.completions.create(
         model=model,
         messages=[
@@ -203,7 +204,7 @@ def analyze(text, client):
 def extract_cover_image(url):
     """Function extract_cover_image"""    
     
-    page = requests.get(url, timeout=10)
+    page = requests.get(url)
     soup = BeautifulSoup(page.content, "html.parser")
     cover_image = soup.find(
         "meta", property="og:image"
@@ -254,7 +255,7 @@ def fetch_data_from_url():
         elif url.lower().endswith(".pdf"):
             media = "PDF"
             try:
-                response = requests.get(url, timeout=10)
+                response = requests.get(url)
                 response.raise_for_status()  # Ensure we capture HTTP errors
 
                 pdf_reader = PyPDF2.PdfReader(io.BytesIO(response.content))
@@ -266,7 +267,7 @@ def fetch_data_from_url():
                 return jsonify({"error": str(e)}), 400
         else:
             media = "web"
-            page = requests.get(url, timeout=10)
+            page = requests.get(url)
 
             soup = BeautifulSoup(page.content, "html.parser")
 
@@ -277,11 +278,11 @@ def fetch_data_from_url():
             ]
             combined_text = "".join(text_elements).strip()
             print(combined_text, 'combined_text', len(combined_text))
-        summary_content = summarize(combined_text, openai_client)
         
-        print("summary_content", summary_content)
         
         question_content = analyze(combined_text, openai_client)
+        summary_content = summarize(combined_text, openai_client)
+        print("summary_content", summary_content)
 
         json_string = json.dumps(
             {
