@@ -178,7 +178,7 @@ def analyze(text, client):
     ]
 
     model = "gpt-4-turbo-preview"
-
+    print("text => ", text)
     response = client.chat.completions.create(
         model=model,
         messages=[
@@ -186,7 +186,7 @@ def analyze(text, client):
                 "role": "system",
                 "content": "Generate 5(not less, must 5) multiple choice questions based on the user's message . Each question should have 4 options, with one correct answer. The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers. The explanation should avoid direct references to the article.",
             },
-            {"role": "user", "content": f"{text}"},
+            {"role": "user", "content": text},
         ],
         tools=tools,
     )
@@ -276,7 +276,7 @@ def fetch_data_from_url():
                 tag.get_text() for tag in soup.find_all(["p", "span", "a", "li"])
             ]
             combined_text = "".join(text_elements).strip()
-
+            print(combined_text, 'combined_text', len(combined_text))
         summary_content = summarize(combined_text, openai_client)
         
         print("summary_content", summary_content)
