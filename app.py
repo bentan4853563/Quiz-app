@@ -5,7 +5,7 @@ import time
 import json
 import requests
 from bs4 import BeautifulSoup
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g
 from werkzeug.utils import secure_filename
 import PyPDF2
 from openai import OpenAI
@@ -20,25 +20,41 @@ load_dotenv()
 
 api_key = os.getenv("OPENAI_API_KEY")
 
-client = OpenAI(api_key=api_key)
+# client = OpenAI(api_key=api_key)
 
 app = Flask(__name__)
 
 CORS(app)
 
+@app.before_request
+def before_request():
+    """Function before_request"""
+    g.openai_client = OpenAI(api_key=api_key)
+
+@app.after_request
+def after_request(response):
+    """Function after_request"""    
+    if hasattr(g, 'openai_client'):
+        g.openai_client.close()
+    return response
 
 def get_transcript(video_id):
-
+    """Function get_transcript"""    
+    
     transcript = YouTubeTranscriptApi.get_transcript(video_id)
 
     print(transcript)
 
 
 def is_youtube_url(url):
+    """Function is_youtube_url"""    
+    
     return "youtube.com" in url or "youtu.be" in url
 
 
-def extract_hashtag(text):
+def extract_hashtag(text, client):
+    """Function extract_hashtag"""    
+    
     model = "gpt-4-turbo-preview"
 
     response = client.chat.completions.create(
@@ -59,7 +75,8 @@ def extract_hashtag(text):
     return output[0]
 
 
-def summarize(text):
+def summarize(text, client):
+    """Function summarize"""    
 
     model = "gpt-4-turbo-preview"
 
@@ -111,7 +128,8 @@ def summarize(text):
     return output[0]
 
 
-def analyze(text):
+def analyze(text, client):
+    """Function analyze"""    
 
     tools = [
         {
@@ -183,6 +201,8 @@ def extract_cover_image(url):
 
 @app.route("/fetch", methods=["POST"])
 def fetch_data_from_url():
+    """Function fetch_data_from_url"""    
+    
     data = request.get_json()
     url = data["url"]
 
@@ -193,6 +213,7 @@ def fetch_data_from_url():
 
     start = time.time()
 
+    openai_client = g.openai_client
     # Extract text from the URL
     if is_youtube_url(url):
         # Extract video ID from the YouTube URL
@@ -211,7 +232,7 @@ def fetch_data_from_url():
     elif url.lower().endswith(".pdf"):
         media = "PDF"
         try:
-            response = requests.get(url)
+            response = requests.get(url, timeout=10)
             response.raise_for_status()  # Ensure we capture HTTP errors
 
             pdf_reader = PyPDF2.PdfReader(io.BytesIO(response.content))
@@ -223,7 +244,7 @@ def fetch_data_from_url():
             return jsonify({"error": str(e)}), 400
     else:
         media = "web"
-        page = requests.get(url)
+        page = requests.get(url, timeout=10)
 
         soup = BeautifulSoup(page.content, "html.parser")
 
@@ -236,8 +257,8 @@ def fetch_data_from_url():
 
     print(combined_text)
 
-    summary_content = summarize(combined_text)
-    question_content = analyze(combined_text)
+    summary_content = summarize(combined_text, openai_client)
+    question_content = analyze(combined_text, openai_client)
 
     json_string = json.dumps(
         {
@@ -259,6 +280,8 @@ def fetch_data_from_url():
 
 @app.route("/upload_pdf", methods=["POST"])
 def upload_pdf():
+    """Function upload_pdf"""    
+    openai_client = g.openai_client
     # Check if the post request has the file part
     if "file" not in request.files:
         return jsonify({"error": "No file part"}), 400
@@ -284,8 +307,8 @@ def upload_pdf():
         # For example, returning it
         print(text)
 
-        summary_content = summarize(text)
-        question_content = analyze(text)
+        summary_content = summarize(text, openai_client)
+        question_content = analyze(text, openai_client)
 
         print(summary_content, question_content)
 
