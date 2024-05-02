@@ -190,6 +190,8 @@ def analyze(text, client):
         ],
         tools=tools,
     )
+    
+    print("Resonse => ", response)
 
     output = []
     for res in response.choices[0].message.tool_calls:
@@ -275,9 +277,10 @@ def fetch_data_from_url():
             ]
             combined_text = "".join(text_elements).strip()
 
-        print(combined_text)
-
         summary_content = summarize(combined_text, openai_client)
+        
+        print("summary_content", summary_content)
+        
         question_content = analyze(combined_text, openai_client)
 
         json_string = json.dumps(
