@@ -332,7 +332,6 @@ def upload_pdf():
 
         # Do something with the extracted text
         # For example, returning it
-        print(text)
 
         summary_content = summarize(text, openai_client)
         question_content = analyze(text, openai_client)
