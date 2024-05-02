@@ -56,7 +56,7 @@ def extract_hashtag(text):
     for res in response.choices[0].message.tool_calls:
         output.append(res.function.arguments)
 
-    return output
+    return output[0]
 
 
 def summarize(text):
@@ -108,7 +108,7 @@ def summarize(text):
     for res in response.choices[0].message.tool_calls:
         output.append(res.function.arguments)
 
-    return output
+    return output[0]
 
 
 def analyze(text):
@@ -161,7 +161,7 @@ def analyze(text):
     for res in response.choices[0].message.tool_calls:
         output.append(res.function.arguments)
 
-    return output
+    return output[0]
 
 
 def extract_cover_image(url):
