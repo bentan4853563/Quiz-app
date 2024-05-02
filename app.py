@@ -43,7 +43,6 @@ app.logger.addHandler(file_handler)
 # Log a message to test the logging setup
 app.logger.info('Application startup')
 
-
 @app.before_request
 def before_request():
     """Function before_request"""
@@ -62,9 +61,6 @@ def get_transcript(video_id):
     """Function get_transcript"""    
     
     transcript = YouTubeTranscriptApi.get_transcript(video_id)
-
-    print(transcript)
-
 
 def is_youtube_url(url):
     """Function is_youtube_url"""    
