@@ -7,7 +7,6 @@ import time
 import json
 import logging
 from logging.handlers import RotatingFileHandler
-import requests
 from bs4 import BeautifulSoup
 from flask import Flask, request, jsonify, g
 from werkzeug.utils import secure_filename
@@ -16,7 +15,8 @@ from openai import OpenAI
 from flask_cors import CORS
 from dotenv import load_dotenv
 from youtube_transcript_api import YouTubeTranscriptApi
-
+from concurrent.futures import ThreadPoolExecutor
+import requests
 
 ALLOWED_EXTENSIONS = {"pdf"}
 
@@ -137,12 +137,10 @@ def summarize(text):
         ],
         tools=tools,
     )
-    print("response===>", response)
     
     output = []
     for res in response.choices[0].message.tool_calls:
         output.append(res.function.arguments)
-    print("output===>", output)
 
     return output[0]
 
@@ -192,13 +190,11 @@ def analyze(text):
         ],
         tools=tools
     )    
-    print("response => ", response)
 
     output = []
     for res in response.choices[0].message.tool_calls:
         output.append(res.function.arguments)
 
-    print("output => ", output)
     return output[0]
 
 
@@ -279,8 +275,9 @@ def fetch_data_from_url():
             ]
             combined_text = "".join(text_elements).strip()
         
-        # summary_content = summarize(combined_text)
-        question_content = analyze(combined_text)
+        with ThreadPoolExecutor() as executor:
+            summary_content = executor.submit(summarize, combined_text).result()
+            question_content = executor.submit(analyze, combined_text).result()
 
         json_string = json.dumps(
             {
@@ -331,8 +328,9 @@ def upload_pdf():
         # Do something with the extracted text
         # For example, returning it
 
-        summary_content = summarize(text)
-        question_content = analyze(text)
+        with ThreadPoolExecutor() as executor:
+            summary_content = executor.submit(summarize, text).result()
+            question_content = executor.submit(analyze, text).result()
 
         print(summary_content, question_content)
 
