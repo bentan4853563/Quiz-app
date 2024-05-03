@@ -193,12 +193,12 @@ def analyze(text):
         tools=tools,
     )
     
-    print("Resonse => ", response)
 
     output = []
     for res in response.choices[0].message.tool_calls:
         output.append(res.function.arguments)
 
+    print("output => ", output)
     return output[0]
 
 
