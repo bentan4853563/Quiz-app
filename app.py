@@ -181,20 +181,20 @@ def analyze(text):
     ]
 
     
-    model = "gpt-4-1106-preview"
     response = client.chat.completions.create(
-        model=model,
+        model="gpt-4-1106-preview",
         messages=[
+            {"role": "system", "content": "You are a helpfull and sensitive assitant."},
             {
                 "role": "system",
                 "content": "Generate 5(not less, must 5) multiple choice questions based on the user's message . Each question should have 4 options, with one correct answer. The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers. The explanation should avoid direct references to the article.",
             },
-            {"role": "user", "content": text},
+            {"role": "user", "content": f"{text}"},
         ],
         tools=tools,
     )
     
-
+    print("response", response)
     output = []
     for res in response.choices[0].message.tool_calls:
         output.append(res.function.arguments)
