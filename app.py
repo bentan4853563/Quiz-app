@@ -190,8 +190,9 @@ def analyze(text):
             },
             {"role": "user", "content": f"{text}"},
         ],
-        tools=tools
+        # tools=tools
     )    
+    print("response => ", response)
 
     output = []
     for res in response.choices[0].message.tool_calls:
