@@ -280,7 +280,7 @@ def fetch_data_from_url():
             print(combined_text, 'combined_text', len(combined_text))
         
         
-        # question_content = analyze(combined_text, openai_client)
+        question_content = analyze(combined_text, openai_client)
         summary_content = summarize(combined_text, openai_client)
         print("summary_content", summary_content)
 
@@ -332,6 +332,7 @@ def upload_pdf():
 
         # Do something with the extracted text
         # For example, returning it
+        print(text)
 
         summary_content = summarize(text, openai_client)
         question_content = analyze(text, openai_client)
