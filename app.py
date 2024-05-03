@@ -199,14 +199,15 @@ def analyze(text):
         messages=[
             {"role": "system", "content": "You are a helpfull and sensitive assitant."},
             {
-                "role": "system", "content": "You have to generate 5(not less, must 5) multiple choice questions based on the next user's message . Each question should have 4 options, with one correct answer. The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers. The explanation should avoid direct references to the user's message.",
+                "role": "system",
+                "content": "You have to generate 5(not less, must 5) multiple choice questions based on the next user's message . Each question should have 4 options, with one correct answer. The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers. The explanation should avoid direct references to the user's message.",
             },
             {"role": "user", "content": f"{text}"},
         ],
-        # tools=tools,
-    )
+    )    
     
     print("response", response)
+    
     output = []
     for res in response.choices[0].message.tool_calls:
         output.append(res.function.arguments)
