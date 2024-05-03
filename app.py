@@ -178,21 +178,7 @@ def analyze(text):
                 },
             },
         }
-    ]
-    
-    test = client.chat.completions.create(
-        model="gpt-4-1106-preview",
-        messages=[
-            {"role": "system", "content": "You are a helpfull and sensitive assitant."},
-            {
-                "role": "system",
-                "content": "Summarize next user message",
-            },
-            {"role": "user", "content": f"{text}"},
-        ],
-    )
-    
-    print("test===>", test)
+    ]    
     
     response = client.chat.completions.create(
         model="gpt-4-1106-preview",
@@ -204,10 +190,9 @@ def analyze(text):
             },
             {"role": "user", "content": f"{text}"},
         ],
+        tools=tools
     )    
-    
-    print("response", response)
-    
+
     output = []
     for res in response.choices[0].message.tool_calls:
         output.append(res.function.arguments)
