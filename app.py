@@ -180,7 +180,7 @@ def analyze(text):
     ]    
     
     response = client.chat.completions.create(
-        model="gpt-4-turbo",
+        model="gpt-4-1106-preview",
         messages=[
             {"role": "system", "content": "You are a helpfull and sensitive assitant."},
             {
