@@ -24,7 +24,7 @@ load_dotenv()
 
 api_key = os.getenv("OPENAI_API_KEY")
 
-# client = OpenAI(api_key=api_key)
+client = OpenAI(api_key=api_key)
 
 app = Flask(__name__)
 
@@ -47,14 +47,14 @@ app.logger.info('Application startup')
 def before_request():
     """Function before_request"""
     app.logger.info(f"Incoming request: {request.method} {request.url}")
-    g.openai_client = OpenAI(api_key=api_key)
+    # g.openai_client = OpenAI(api_key=api_key)
 
 @app.after_request
 def after_request(response):
     """Function after_request"""    
     app.logger.info(f"Outgoing response: {response.status_code}")
-    if hasattr(g, 'openai_client'):
-        g.openai_client.close()
+    # if hasattr(g, 'openai_client'):
+        # g.openai_client.close()
     return response
 
 def get_transcript(video_id):
@@ -68,7 +68,7 @@ def is_youtube_url(url):
     return "youtube.com" in url or "youtu.be" in url
 
 
-def extract_hashtag(text, client):
+def extract_hashtag(text):
     """Function extract_hashtag"""    
     
     model = "gpt-4-1106-preview"
@@ -91,9 +91,9 @@ def extract_hashtag(text, client):
     return output[0]
 
 
-def summarize(text, client):
+def summarize(text):
     """Function summarize"""    
-    print("Summarize Function")
+    print("Summarize Function", text)
 
     model = "gpt-4-1106-preview"
 
@@ -144,7 +144,7 @@ def summarize(text, client):
     return output[0]
 
 
-def analyze(text, client):
+def analyze(text):
     """Function analyze"""    
 
     tools = [
@@ -235,7 +235,7 @@ def fetch_data_from_url():
 
         start = time.time()
 
-        openai_client = g.openai_client
+        # openai_client = g.openai_client
         # Extract text from the URL
         if is_youtube_url(url):
             # Extract video ID from the YouTube URL
@@ -279,8 +279,8 @@ def fetch_data_from_url():
             combined_text = "".join(text_elements).strip()
             print(combined_text, 'combined_text', len(combined_text))
         
-        summary_content = summarize(combined_text, openai_client)
-        question_content = analyze(combined_text, openai_client)
+        summary_content = summarize(combined_text)
+        question_content = analyze(combined_text)
 
         json_string = json.dumps(
             {
@@ -330,10 +330,9 @@ def upload_pdf():
 
         # Do something with the extracted text
         # For example, returning it
-        print(text)
 
-        summary_content = summarize(text, openai_client)
-        question_content = analyze(text, openai_client)
+        summary_content = summarize(text)
+        question_content = analyze(text)
 
         print(summary_content, question_content)
 
