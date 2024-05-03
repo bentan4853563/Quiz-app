@@ -94,7 +94,15 @@ def extract_hashtag(text):
 def summarize(text):
     """Function summarize"""    
     print("Summarize Function", text)
-
+    test = client.chat.completions.create(
+        model="gpt-4-turbo",
+        messages=[
+            {"role": "system", "content": "You are a helpfull history professor"},
+            {"role": "user", "content": "When was second world war?"}            
+        ]
+    )
+    print("test====>>>", test)
+    
     tools = [
         {
             "type": "function",
