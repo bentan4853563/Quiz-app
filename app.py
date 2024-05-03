@@ -7,6 +7,7 @@ import time
 import json
 import logging
 from logging.handlers import RotatingFileHandler
+import requests
 from bs4 import BeautifulSoup
 from flask import Flask, request, jsonify, g
 from werkzeug.utils import secure_filename
@@ -15,8 +16,9 @@ from openai import OpenAI
 from flask_cors import CORS
 from dotenv import load_dotenv
 from youtube_transcript_api import YouTubeTranscriptApi
-from concurrent.futures import ThreadPoolExecutor
-import requests
+from gevent import monkey
+monkey.patch_all()
+
 
 ALLOWED_EXTENSIONS = {"pdf"}
 
@@ -24,7 +26,7 @@ load_dotenv()
 
 api_key = os.getenv("OPENAI_API_KEY")
 print("api_key", api_key)
-openai_client = OpenAI(api_key=api_key)
+client = OpenAI(api_key=api_key)
 
 app = Flask(__name__)
 
@@ -68,7 +70,7 @@ def is_youtube_url(url):
     return "youtube.com" in url or "youtu.be" in url
 
 
-def extract_hashtag(text, client):
+def extract_hashtag(text):
     """Function extract_hashtag"""    
     
     model = "gpt-4-1106-preview"
@@ -91,7 +93,7 @@ def extract_hashtag(text, client):
     return output[0]
 
 
-def summarize(text, client):
+def summarize(text):
     """Function summarize"""    
     print("Summarize Function", text)
     
@@ -142,11 +144,12 @@ def summarize(text, client):
     output = []
     for res in response.choices[0].message.tool_calls:
         output.append(res.function.arguments)
+    print("output===>", output)
 
     return output[0]
 
 
-def analyze(text, client):
+def analyze(text):
     """Function analyze"""    
 
     tools = [
@@ -180,7 +183,7 @@ def analyze(text, client):
     ]    
     
     response = client.chat.completions.create(
-        model="gpt-4-1106-preview",
+        model="gpt-4-turbo",
         messages=[
             {"role": "system", "content": "You are a helpfull and sensitive assitant."},
             {
@@ -197,6 +200,7 @@ def analyze(text, client):
     for res in response.choices[0].message.tool_calls:
         output.append(res.function.arguments)
 
+    print("output => ", output)
     return output[0]
 
 
@@ -277,9 +281,8 @@ def fetch_data_from_url():
             ]
             combined_text = "".join(text_elements).strip()
         
-        with ThreadPoolExecutor() as executor:
-            summary_content = executor.submit(summarize, combined_text, openai_client).result()
-            question_content = executor.submit(analyze, combined_text, openai_client).result()
+        summary_content = summarize(combined_text)
+        question_content = analyze(combined_text)
 
         json_string = json.dumps(
             {
@@ -330,9 +333,8 @@ def upload_pdf():
         # Do something with the extracted text
         # For example, returning it
 
-        with ThreadPoolExecutor() as executor:
-            summary_content = executor.submit(summarize, text).result()
-            question_content = executor.submit(analyze, text).result()
+        summary_content = summarize(text)
+        question_content = analyze(text)
 
         print(summary_content, question_content)
 
@@ -363,6 +365,7 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=5173,
+        threaded=True,
         ssl_context=(
             "/etc/letsencrypt/live/lurny.net/cert.pem",
             "/etc/letsencrypt/live/lurny.net/privkey.pem",
