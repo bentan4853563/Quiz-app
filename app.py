@@ -279,7 +279,7 @@ def fetch_data_from_url():
             ]
             combined_text = "".join(text_elements).strip()
         
-        summary_content = summarize(combined_text)
+        # summary_content = summarize(combined_text)
         question_content = analyze(combined_text)
 
         json_string = json.dumps(
