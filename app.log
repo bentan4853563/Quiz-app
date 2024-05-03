@@ -1,0 +1,33 @@
+2024-05-03 05:04:19,660 INFO: Application startup [in D:\KCM\Tasks\Lurny\python\Quiz-app\app.py:44]
+2024-05-03 05:04:27,123 INFO: Incoming request: POST http://localhost:5011/fetch [in D:\KCM\Tasks\Lurny\python\Quiz-app\app.py:49]
+2024-05-03 05:04:27,124 ERROR: Exception on /fetch [POST] [in C:\Program Files\Python311\Lib\site-packages\flask\app.py:828]
+Traceback (most recent call last):
+  File "C:\Program Files\Python311\Lib\site-packages\flask\app.py", line 1463, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python311\Lib\site-packages\flask\app.py", line 872, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python311\Lib\site-packages\flask_cors\extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python311\Lib\site-packages\flask\app.py", line 868, in full_dispatch_request
+    rv = self.preprocess_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python311\Lib\site-packages\flask\app.py", line 1243, in preprocess_request
+    rv = self.ensure_sync(before_func)()
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\KCM\Tasks\Lurny\python\Quiz-app\app.py", line 50, in before_request
+    g.openai_client = OpenAI(api_key=api_key)
+                      ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python311\Lib\site-packages\openai\_client.py", line 98, in __init__
+    raise OpenAIError(
+openai.OpenAIError: The api_key client option must be set either by passing api_key to the client or by setting the OPENAI_API_KEY environment variable
+2024-05-03 05:04:27,129 INFO: Outgoing response: 500 [in D:\KCM\Tasks\Lurny\python\Quiz-app\app.py:55]
+2024-05-03 05:05:11,691 INFO: Application startup [in D:\KCM\Tasks\Lurny\python\Quiz-app\app.py:44]
+2024-05-03 05:05:18,450 INFO: Incoming request: POST http://localhost:5011/fetch [in D:\KCM\Tasks\Lurny\python\Quiz-app\app.py:49]
+2024-05-03 05:05:18,467 INFO: Processing URL: https://javascriptcentric.medium.com/top-30-javascript-interview-questions-and-answers-for-2024-7f1e2d1d0638 [in D:\KCM\Tasks\Lurny\python\Quiz-app\app.py:229]
+2024-05-03 05:05:21,100 INFO: Incoming request: POST http://localhost:5011/fetch [in D:\KCM\Tasks\Lurny\python\Quiz-app\app.py:49]
+2024-05-03 05:05:21,121 INFO: Processing URL: https://akshay9.medium.com/10-most-difficult-questions-asked-in-react-js-interviews-c2cbac7f0a8d [in D:\KCM\Tasks\Lurny\python\Quiz-app\app.py:229]
+2024-05-03 05:05:44,106 INFO: Outgoing response: 200 [in D:\KCM\Tasks\Lurny\python\Quiz-app\app.py:55]
+2024-05-03 05:05:53,313 INFO: Outgoing response: 200 [in D:\KCM\Tasks\Lurny\python\Quiz-app\app.py:55]

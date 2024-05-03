@@ -155,7 +155,7 @@ def analyze(text):
             "type": "function",
             "function": {
                 "name": "get_question_answer",
-                "description": "Get questions and answers from use's message.",
+                "description": "Generate question and answers",
                 "parameters": {
                     "type": "object",
                     "properties": {
