@@ -176,7 +176,6 @@ def analyze(text):
         }
     ]
 
-    print("text => ", text)
     
     model = "gpt-4-1106-preview"
     response = client.chat.completions.create(
@@ -276,7 +275,6 @@ def fetch_data_from_url():
                 tag.get_text() for tag in soup.find_all(["p", "span", "a", "li"])
             ]
             combined_text = "".join(text_elements).strip()
-            print(combined_text, 'combined_text', len(combined_text))
         
         summary_content = summarize(combined_text)
         question_content = analyze(combined_text)
