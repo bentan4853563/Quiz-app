@@ -137,6 +137,7 @@ def summarize(text):
         ],
         tools=tools,
     )
+    print("response===>", response)
     
     output = []
     for res in response.choices[0].message.tool_calls:
@@ -190,6 +191,7 @@ def analyze(text):
         ],
         tools=tools
     )    
+    print("response => ", response)
 
     output = []
     for res in response.choices[0].message.tool_calls:
