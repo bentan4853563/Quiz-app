@@ -94,14 +94,6 @@ def extract_hashtag(text):
 def summarize(text):
     """Function summarize"""    
     print("Summarize Function", text)
-    test = client.chat.completions.create(
-        model="gpt-4-turbo",
-        messages=[
-            {"role": "system", "content": "You are a helpfull history professor"},
-            {"role": "user", "content": "When was second world war?"}            
-        ]
-    )
-    print("test====>>>", test)
     
     tools = [
         {
@@ -136,14 +128,16 @@ def summarize(text):
     response = client.chat.completions.create(
         model="gpt-4-1106-preview",
         messages=[
+            {"role": "system", "content": "You are a helpfull and sensitive assitant."},
             {
                 "role": "system",
-                "content": "Provide a concise title, not exceeding 10 words, that encapsulates the essence of the provided user's message. And create a summarized overview of the key learnings from the user's message. Ensure that the summary does not plagiarize the original text. Present the main points in 7 or more bulleted statements, focusing on the core themes and insights of the article. Avoid direct references to the article and instead, provide a coherent understanding of its subject matter. And list all the keywords found in the provided user's message as hashtags. Additionally, include relevant keyword hashtags that may not be explicitly mentioned in the article but are pertinent to the user's message.",
+                "content": "What is the main point of following user message?",
             },
             {"role": "user", "content": f"{text}"},
         ],
-        tools=tools,
+        # tools=tools,
     )
+    print("response===>", response)
     output = []
     for res in response.choices[0].message.tool_calls:
         output.append(res.function.arguments)
