@@ -93,6 +93,7 @@ def extract_hashtag(text, client):
 
 def summarize(text, client):
     """Function summarize"""    
+    print("Summarize Function")
 
     model = "gpt-4-1106-preview"
 
@@ -125,7 +126,6 @@ def summarize(text, client):
             },
         }
     ]
-
     response = client.chat.completions.create(
         model=model,
         messages=[
@@ -279,10 +279,8 @@ def fetch_data_from_url():
             combined_text = "".join(text_elements).strip()
             print(combined_text, 'combined_text', len(combined_text))
         
-        
-        question_content = analyze(combined_text, openai_client)
         summary_content = summarize(combined_text, openai_client)
-        print("summary_content", summary_content)
+        question_content = analyze(combined_text, openai_client)
 
         json_string = json.dumps(
             {
