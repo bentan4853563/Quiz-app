@@ -135,9 +135,10 @@ def summarize(text):
             },
             {"role": "user", "content": f"{text}"},
         ],
-        # tools=tools,
+        tools=tools,
     )
     print("response===>", response)
+    
     output = []
     for res in response.choices[0].message.tool_calls:
         output.append(res.function.arguments)
