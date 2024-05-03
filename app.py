@@ -200,11 +200,11 @@ def analyze(text):
             {"role": "system", "content": "You are a helpfull and sensitive assitant."},
             {
                 "role": "system",
-                "content": "Generate 5(not less, must 5) multiple choice questions based on the user's message . Each question should have 4 options, with one correct answer. The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers. The explanation should avoid direct references to the article.",
+                "content": "You have to generate 5(not less, must 5) multiple choice questions based on the user's message . Each question should have 4 options, with one correct answer. The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers. The explanation should avoid direct references to the article.",
             },
             {"role": "user", "content": f"{text}"},
         ],
-        tools=tools,
+        # tools=tools,
     )
     
     print("response", response)
