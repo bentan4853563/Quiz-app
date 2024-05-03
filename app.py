@@ -181,7 +181,7 @@ def analyze(text):
     ]    
     
     response = client.chat.completions.create(
-        model="gpt-4-1106-preview",
+        model="gpt-4-turbo",
         messages=[
             {"role": "system", "content": "You are a helpfull and sensitive assitant."},
             {
@@ -190,7 +190,7 @@ def analyze(text):
             },
             {"role": "user", "content": f"{text}"},
         ],
-        # tools=tools
+        tools=tools
     )    
     print("response => ", response)
 
