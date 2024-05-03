@@ -24,7 +24,7 @@ load_dotenv()
 
 api_key = os.getenv("OPENAI_API_KEY")
 print("api_key", api_key)
-client = OpenAI(api_key=api_key)
+openai_client = OpenAI(api_key=api_key)
 
 app = Flask(__name__)
 
@@ -68,7 +68,7 @@ def is_youtube_url(url):
     return "youtube.com" in url or "youtu.be" in url
 
 
-def extract_hashtag(text):
+def extract_hashtag(text, client):
     """Function extract_hashtag"""    
     
     model = "gpt-4-1106-preview"
@@ -91,7 +91,7 @@ def extract_hashtag(text):
     return output[0]
 
 
-def summarize(text):
+def summarize(text, client):
     """Function summarize"""    
     print("Summarize Function", text)
     
@@ -146,7 +146,7 @@ def summarize(text):
     return output[0]
 
 
-def analyze(text):
+def analyze(text, client):
     """Function analyze"""    
 
     tools = [
@@ -278,8 +278,8 @@ def fetch_data_from_url():
             combined_text = "".join(text_elements).strip()
         
         with ThreadPoolExecutor() as executor:
-            summary_content = executor.submit(summarize, combined_text).result()
-            question_content = executor.submit(analyze, combined_text).result()
+            summary_content = executor.submit(summarize, combined_text, openai_client).result()
+            question_content = executor.submit(analyze, combined_text, openai_client).result()
 
         json_string = json.dumps(
             {
