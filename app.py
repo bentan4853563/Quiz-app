@@ -132,7 +132,11 @@ def summarize(text):
             {"role": "system", "content": "You are a helpfull and sensitive assitant."},
             {
                 "role": "system",
-                "content": "Provide a concise title, not exceeding 10 words, that encapsulates the essence of the provided user's message. And create a summarized overview of the key learnings from the user's message. Ensure that the summary does not plagiarize the original text. Present the main points in 7 or more bulleted statements, focusing on the core themes and insights of the article. Avoid direct references to the article and instead, provide a coherent understanding of its subject matter. And list all the keywords found in the provided user's message as hashtags. Additionally, include relevant keyword hashtags that may not be explicitly mentioned in the article but are pertinent to the user's message.",
+                "content": """Title: Craft an engaging, question-based or list-based title that encapsulates the essence of the user's message. The title should not exceed 10 words and should invite curiosity or highlight the utility of the content (e.g., "How Does X Work?" or "7 Key Strategies to Achieve Y").
+
+                Summary: Create a summarized overview of the key learnings from the user's message. Present this overview in 7 or more bullet points that focus on the core themes and insights. Each bullet should convey a standalone insight or action point, framed to encourage deeper exploration or understanding.
+
+                Keywords: List all relevant keywords from the user's message as hashtags. Additionally, include related keywords that might not be explicitly mentioned but are relevant to the subject matter.""",
             },
             {"role": "user", "content": f"{text}"},
         ],
@@ -185,7 +189,8 @@ def analyze(text):
             {"role": "system", "content": "You are a helpfull and sensitive assitant."},
             {
                 "role": "system",
-                "content": "You have to generate 5(not less, must 5) multiple choice questions based on the next user's message . Each question should have 4 options, with one correct answer. The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers. The explanation should avoid direct references to the user's message.",
+                "content": """Task: Generate exactly 5 multiple-choice questions based on the upcoming user's message. Each question should include 4 answer options, clearly indicating one correct answer.
+                Explanation: Provide a universal explanation for each question that will be displayed when a learner selects any incorrect answer. This explanation should help clarify the correct concept without directly referencing the user's original message.""",
             },
             {"role": "user", "content": f"{text}"},
         ],
