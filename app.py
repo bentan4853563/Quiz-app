@@ -294,7 +294,6 @@ def fetch_data_from_url():
         end = time.time()
         print(end - start, "s")
 
-        json_string.headers.add("Access-Control-Allow-Origin", "*")
         return json_string
 
     except Exception as e:
