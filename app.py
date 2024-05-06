@@ -187,7 +187,7 @@ def analyze(text):
         messages=[
             {
                 "role": "system",
-                "content": """You have to generate 5(not less, must 5) multiple choice questions based on the provided user's message. Each question should have 4 options, with one correct answer. The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers. The explanation should avoid direct references to the user's message.""",
+                "content": """You have to generate 5(not less, must 5) questions""",
             },
             {"role": "user", "content": f"{text}"},
         ],
