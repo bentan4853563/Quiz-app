@@ -128,7 +128,6 @@ def summarize(text):
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "You are a helpfull and sensitive assitant."},
             {
                 "role": "system",
                 "content": """Title: You must create an engaging, question-based or list-based title that encapsulates the essence of the user's message. The title should not exceed 10 words and should invite curiosity or highlight the utility of the content (e.g., "How Does X Work?" or "7 Key Strategies to Achieve Y").
@@ -186,10 +185,9 @@ def analyze(text):
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "You are a helpfull and sensitive assitant."},
             {
                 "role": "system",
-                "content": """Task: Generate exactly 5 multiple-choice questions based on the provided passage. Each question should include 4 answer options, clearly indicating one correct answer. Provide a universal explanation for each question that will be displayed when a learner selects any incorrect answer. This explanation should help clarify the correct concept without directly referencing the user's original message.""",
+                "content": """Generate exactly 5 multiple-choice questions based on the provided passage. Each question should include 4 answer options, clearly indicating one correct answer. Provide a universal explanation for each question that will be displayed when a learner selects any incorrect answer. This explanation should help clarify the correct concept without directly referencing the user's original message.""",
             },
             {"role": "user", "content": f"'Content': {text}"},
         ],
