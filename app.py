@@ -72,7 +72,7 @@ def is_youtube_url(url):
 def extract_hashtag(text):
     """Function extract_hashtag"""    
     
-    model = "gpt-3.5-turbo-0125"
+    model = "gpt-4-turbo"
 
     response = client.chat.completions.create(
         model=model,
@@ -126,7 +126,7 @@ def summarize(text):
     ]
     
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo-0125",
+        model="gpt-4-turbo",
         messages=[
             {
                 "role": "system",
@@ -183,7 +183,7 @@ def analyze(text):
     ]    
     
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo-0125",
+        model="gpt-4-turbo",
         messages=[
             {
                 "role": "system",
