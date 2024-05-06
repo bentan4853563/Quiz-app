@@ -130,9 +130,9 @@ def summarize(text):
         messages=[
             {
                 "role": "system",
-                "content": """Title: You must create an engaging, question-based or list-based title that encapsulates the essence of the user's message. The title should not exceed 10 words and should invite curiosity or highlight the utility of the content (e.g., "How Does X Work?" or "7 Key Strategies to Achieve Y").
+                "content": """ You must create an engaging, question-based or list-based title that encapsulates the essence of the user's message. The title should not exceed 10 words and should invite curiosity or highlight the utility of the content (e.g., "How Does X Work?" or "7 Key Strategies to Achieve Y").
 
-                Summary: Must Analyze the provided passage and extract individual insights that offer 10 standalone learning points. It is very important that there must be minimum 10 such learning points and each learning point must have 30 words.  This requirement is non-negotiable. Each learning point must encapsulate a distinct aspect of the topic discussed, comprehensible in isolation. Focus on articulating key takeaways, trends, challenges, solutions, or impacts highlighted in the text. Ensure that each learning point contributes to a deeper understanding of the subject matter without relying on context from other points. 
+                Summary: Must Analyze the provided passage and extract individual insights that offer 10 standalone learning points. It is very important that there must be minimum 10 such learning points. It is very important that each learning point must have 30 words.  That is, point 1 must have 30 words, learning point 2 must have 30 words etc. This requirement is non-negotiable. Each learning point must encapsulate a distinct aspect of the topic discussed, comprehensible in isolation. Focus on articulating key takeaways, trends, challenges, solutions, or impacts highlighted in the text. Ensure that each learning point contributes to a deeper understanding of the subject matter without relying on context from other points.
 
                 Keywords: List all relevant keywords from the user's message as hashtags. Additionally, include related keywords that might not be explicitly mentioned but are relevant to the subject matter.
                 """,
@@ -188,7 +188,7 @@ def analyze(text):
             {"role": "system", "content": "You are a greate and sensitive assistant for generating multiple questions and answers"},
             {
                 "role": "system",
-                "content": """You have to generate 5(not less, must 5) multiple choice questions based on the given user's message. Each question should have 4 options, with one correct answer. The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers. The explanation should avoid direct references to the user's message.""",
+                "content": """Split the provided passage in 5 equal parts. That is if the provided passage has 1000 words, split the passage into 5 parts of 200 words each. Then generate one multiple choice question for each of the 5 parts from the passage. Each question should have 4 options, with one correct answer. The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers. The explanation should avoid direct references to the user's message.""",
             },
             {"role": "user", "content": f"{text}"},
         ],
