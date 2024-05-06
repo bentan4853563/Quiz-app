@@ -131,9 +131,9 @@ def summarize(text):
             {"role": "system", "content": "You are a helpfull and sensitive assitant."},
             {
                 "role": "system",
-                "content": """Title: Craft an engaging, question-based or list-based title that encapsulates the essence of the user's message. The title should not exceed 10 words and should invite curiosity or highlight the utility of the content (e.g., "How Does X Work?" or "7 Key Strategies to Achieve Y").
+                "content": """Title: You must create an engaging, question-based or list-based title that encapsulates the essence of the user's message. The title should not exceed 10 words and should invite curiosity or highlight the utility of the content (e.g., "How Does X Work?" or "7 Key Strategies to Achieve Y").
 
-                Summary: Create a summarized overview of the key learnings from the user's message. Present this overview in 7 or more bullet points that focus on the core themes and insights. Each bullet should convey a standalone insight or action point, framed to encourage deeper exploration or understanding.
+                Summary: Must Analyze the provided passage and extract individual insights that offer standalone learning points. Each learning point should be at least 30 words. Each learning point must encapsulate a distinct aspect of the topic discussed, comprehensible in isolation. Focus on articulating key takeaways, trends, challenges, solutions, or impacts highlighted in the text. Ensure that each learning point contributes to a deeper understanding of the subject matter without relying on context from other points. Generate a minimum of 10 such key learning points."
 
                 Keywords: List all relevant keywords from the user's message as hashtags. Additionally, include related keywords that might not be explicitly mentioned but are relevant to the subject matter.""",
             },
@@ -188,7 +188,8 @@ def analyze(text):
             {"role": "system", "content": "You are a helpfull and sensitive assitant."},
             {
                 "role": "system",
-                "content": """Task: Generate exactly 5 multiple-choice questions based on the upcoming user's message. Each question should include 4 answer options, clearly indicating one correct answer.
+                "content": """Task: Generate exactly 5 multiple-choice questions based on the provided passage. Each question should include 4 answer options, clearly indicating one correct answer.
+
                 Explanation: Provide a universal explanation for each question that will be displayed when a learner selects any incorrect answer. This explanation should help clarify the correct concept without directly referencing the user's original message.""",
             },
             {"role": "user", "content": f"{text}"},
