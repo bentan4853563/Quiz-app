@@ -19,13 +19,12 @@ from youtube_transcript_api import YouTubeTranscriptApi
 from gevent import monkey
 monkey.patch_all()
 
-
 ALLOWED_EXTENSIONS = {"pdf"}
 
 load_dotenv()
 
 api_key = os.getenv("OPENAI_API_KEY")
-print("api_key", api_key)
+
 client = OpenAI(api_key=api_key)
 
 app = Flask(__name__)
@@ -73,7 +72,7 @@ def is_youtube_url(url):
 def extract_hashtag(text):
     """Function extract_hashtag"""    
     
-    model = "gpt-4-1106-preview"
+    model = "gpt-3.5-turbo"
 
     response = client.chat.completions.create(
         model=model,
@@ -127,7 +126,7 @@ def summarize(text):
     ]
     
     response = client.chat.completions.create(
-        model="gpt-4-1106-preview",
+        model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "You are a helpfull and sensitive assitant."},
             {
@@ -184,7 +183,7 @@ def analyze(text):
     ]    
     
     response = client.chat.completions.create(
-        model="gpt-4-1106-preview",
+        model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "You are a helpfull and sensitive assitant."},
             {
@@ -200,7 +199,6 @@ def analyze(text):
     output = []
     for res in response.choices[0].message.tool_calls:
         output.append(res.function.arguments)
-    print("quiz", output)
     return output
 
 
