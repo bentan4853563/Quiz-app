@@ -291,7 +291,7 @@ def fetch_data_from_url():
         
         print("combined", combined_text)
         num_tokens = num_tokens_from_string(combined_text, "gpt-3.5-turbo")
-        num_parts = math.ceil(num_tokens / 16385) 
+        num_parts = math.ceil(num_tokens / 10000) 
         print("num_parts", num_parts)
         splits = split_content_evenly(combined_text, num_parts) 
                 
