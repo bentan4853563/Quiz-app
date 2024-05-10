@@ -1,35 +1,41 @@
-"""Module providing a system that extracting data from PDF and process by OpenAI"""
-
 import io
+import json
+import logging
 import os
 import re
 import time
-import json
-import logging
+from datetime import datetime 
+import math
 from logging.handlers import RotatingFileHandler
-import requests
-from bs4 import BeautifulSoup
-from flask import Flask, request, jsonify, g
-from werkzeug.utils import secure_filename
+
 import PyPDF2
-from openai import OpenAI
-from flask_cors import CORS
+import requests
+import tiktoken
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+from flask import Flask, jsonify, request, g
+from flask_cors import CORS
+# from gevent import monkey
+from openai import OpenAI
+from werkzeug.utils import secure_filename
+from pymongo import MongoClient
 from youtube_transcript_api import YouTubeTranscriptApi
-from gevent import monkey
-monkey.patch_all()
+
+# monkey.patch_all()
 
 ALLOWED_EXTENSIONS = {"pdf"}
 
 load_dotenv()
 
 api_key = os.getenv("OPENAI_API_KEY")
-
 client = OpenAI(api_key=api_key)
 
 app = Flask(__name__)
-
 CORS(app)
+
+mongo_client = MongoClient('mongodb+srv://nicolas1303563:awIKKGrgf4GmVYkV@cluster0.w3yzl84.mongodb.net/')
+db = mongo_client['Lurny']
+collection = db['contents']
 
 # Configure the logger
 app.logger.setLevel(logging.INFO)
@@ -59,38 +65,36 @@ def after_request(response):
     return response
 
 def get_transcript(video_id):
-    """Function get_transcript"""    
-    
+    """Function get_transcript from youtube video id"""        
     transcript = YouTubeTranscriptApi.get_transcript(video_id)
 
 def is_youtube_url(url):
-    """Function is_youtube_url"""    
+    """Function check url is youtube url"""    
     
     return "youtube.com" in url or "youtu.be" in url
 
 
-def extract_hashtag(text):
-    """Function extract_hashtag"""    
+def num_tokens_from_string(string: str, encoding_name: str) -> int:
+    """Function get number of tokens"""
+    encoding = tiktoken.encoding_for_model(encoding_name)
+    num_tokens = len(encoding.encode(string))
+    return num_tokens
+
+def split_content_evenly(content, parts):
+    """Function split content as parts"""
     
-    model = "gpt-3.5-turbo"
-
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {
-                "role": "system",
-                "content": "Your role is to extract keywords from the the user's message. Keywords shoud be a list of hashtag.",
-            },
-            {"role": "user", "content": text},
-        ],
-    )
-
-    output = []
-    for res in response.choices[0].message.tool_calls:
-        output.append(res.function.arguments)
-
-    return output[0]
-
+    if parts <= 0:
+        raise ValueError("Number of parts must be greater than zero.")
+    
+    part_len = len(content) // parts
+    
+    splits = []
+    index = 0
+    
+    for _ in range(parts):
+        splits.append(content[index: index + part_len])
+        index += part_len
+    return splits
 
 def summarize(text):
     """Function summarize"""    
@@ -148,7 +152,6 @@ def summarize(text):
 
     return output[0]
 
-
 def analyze(text):
     """Function analyze"""    
 
@@ -200,10 +203,8 @@ def analyze(text):
         output.append(res.function.arguments)
     return output
 
-
 def extract_cover_image(url):
-    """Function extract_cover_image"""    
-    
+    """Function extract_cover_image"""      
     page = requests.get(url)
     soup = BeautifulSoup(page.content, "html.parser")
     cover_image = soup.find(
@@ -219,6 +220,14 @@ def extract_cover_image(url):
         return cover_image["src"]
     return None
 
+def save_content(url, content):
+  """Function save content to database"""
+  document = {
+    'url': url,
+    'content': content,
+    'timestamp': datetime.utcnow()
+  }
+  collection.insert_one(document)
 
 @app.route("/fetch", methods=["POST"])
 def fetch_data_from_url():
@@ -278,25 +287,34 @@ def fetch_data_from_url():
             ]
             combined_text = "".join(text_elements).strip()
         
-        summary_content = summarize(combined_text)
-        question_content = analyze(combined_text)
+        save_content(url, combined_text)
+        
+        num_tokens = num_tokens_from_string(combined_text, "gpt-3.5-turbo")
+        num_parts = math.ceil(num_tokens / 16385) 
+        
+        splits = split_content_evenly(combined_text, num_parts) 
+                
+        results = []
+        for split in splits:                        
+            summary_content = summarize(split)
+            question_content = analyze(split)
 
-        json_string = json.dumps(
-            {
-                "summary_content": summary_content,
-                "questions": question_content,
-                "image": cover_image_url if cover_image_url is not None else "",
-                "url": url,
-                "media": media,
-            }
-        )
-
-        print(json_string + "\n")
+            json_string = json.dumps(
+                {
+                    "summary_content": summary_content,
+                    "questions": question_content,
+                    "image": cover_image_url if cover_image_url is not None else "",
+                    "url": url,
+                    "media": media,
+                }
+            )
+            results.append(json_string)
+        print(results)
 
         end = time.time()
         print(end - start, "s")
 
-        return json_string
+        return jsonify(results)
 
     except Exception as e:
         app.logger.error(f"Error occurred: {e}")
@@ -354,7 +372,6 @@ def upload_pdf():
 
 def allowed_file(filename):
     """Function allowed_file"""    
-    
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
@@ -363,6 +380,7 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=5173,
         threaded=True,
+        debug=True,
         ssl_context=(
             "/etc/letsencrypt/live/lurny.net/cert.pem",
             "/etc/letsencrypt/live/lurny.net/privkey.pem",
