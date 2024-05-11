@@ -286,7 +286,6 @@ def fetch_data_from_url():
                 tag.get_text() for tag in soup.find_all(["p", "span", "a", "li"])
             ]
             combined_text = "".join(text_elements).strip()
-        combined_text = combined_text.encode('utf-8')
         
         save_content(url, combined_text)
         
