@@ -209,7 +209,7 @@ def extract_cover_image(url):
     soup = BeautifulSoup(page.content, "html.parser")
     cover_image = soup.find(
         "meta", property="og:image"
-    )  # Check for Open Graph image tag
+    ) 
     if cover_image:
         return cover_image["content"]
     cover_image = soup.find("meta", itemprop="image")  # Check for Schema.org image tag
@@ -286,14 +286,15 @@ def fetch_data_from_url():
                 tag.get_text() for tag in soup.find_all(["p", "span", "a", "li"])
             ]
             combined_text = "".join(text_elements).strip()
+            encoded_text = combined_text.encode('utf-8')
         
-        save_content(url, combined_text)
+        save_content(url, encoded_text)
         
-        num_tokens = num_tokens_from_string(combined_text, "gpt-3.5-turbo")
+        num_tokens = num_tokens_from_string(encoded_text, "gpt-3.5-turbo")
         
         num_parts = math.ceil(num_tokens / 10000) 
         print("num_parts", num_tokens, num_parts)
-        splits = split_content_evenly(combined_text, num_parts) 
+        splits = split_content_evenly(encoded_text, num_parts) 
                 
         results = []
         for split in splits:                        
@@ -370,11 +371,9 @@ def upload_pdf():
 
     return jsonify({"error": "Invalid file extension"}), 400
 
-
 def allowed_file(filename):
     """Function allowed_file"""    
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
-
 
 if __name__ == "__main__":
     app.run(
