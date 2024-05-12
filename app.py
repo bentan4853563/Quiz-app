@@ -320,7 +320,62 @@ def fetch_data_from_url():
     except Exception as e:
         app.logger.error(f"Error occurred: {e}")
         return jsonify({"error": str(e)}), 500
+ 
+@app.route("/get_quiz", methods=["POST"])
+def generage_quiz():
+    """Function analyze"""    
+    data = request.get_json()
+    stub = data["stub"]
+
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "get_question_answer",
+                "description": "Generate question and answers",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "question": {
+                            "type": "string",
+                            "description": "question",
+                        },
+                        "answer": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "available answer",
+                        },
+                        "correctanswer": {
+                            "type": "string",
+                            "description": "correct answer",
+                        },
+                        "explanation": {"type": "string", "description": "explanation"},
+                    },
+                    "required": ["question", "answer", "correctanswer", "explanation"],
+                },
+            },
+        }
+    ]    
     
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a greate and sensitive assistant for generating multiple questions and answers"},
+            {
+                "role": "system",
+                "content": "You have been provided with a 'learning brief' which encapsulates a distinct aspect of the topic discussed and capable of being comprehensible in isolation. In order for the learner to learn the key takeaway from the 'learning brief', you will create a multiple-choice question  to help memorize the given learning brief. Please provide four answer choices, with one being the correct choice that encapsulates the main idea of the statement. The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers.",
+            },
+            {"role": "user", "content": f"{stub}"},
+        ],
+        tools=tools
+    )    
+
+    output = []
+    for res in response.choices[0].message.tool_calls:
+        output.append(res.function.arguments)
+        print("output", output)
+    return output[0] 
+   
 @app.route("/upload_pdf", methods=["POST"])
 def upload_pdf():
     """Function upload_pdf"""    
