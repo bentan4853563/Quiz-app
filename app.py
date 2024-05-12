@@ -134,11 +134,11 @@ def summarize(text):
         messages=[
             {
                 "role": "system",
-                "content": """ You must create an engaging, question-based or list-based title that encapsulates the essence of the user's message. The title should not exceed 10 words and should invite curiosity or highlight the utility of the content (e.g., "How Does X Work?" or "7 Key Strategies to Achieve Y").
+                "content": """You have been provided with a passage. Read the provided passage and create an engaging title, like for example "How Does X Work?" or "7 Key Strategies to Achieve Y"). The title should not exceed 10 words. 
 
-                Summary: Must Analyze the provided passage and extract individual insights that offer 10 standalone learning points. It is very important that there must be minimum 10 such learning points. It is very important that each learning point must have 30 words.  That is, point 1 must have 30 words, learning point 2 must have 30 words etc. This requirement is non-negotiable. Each learning point must encapsulate a distinct aspect of the topic discussed, comprehensible in isolation. Focus on articulating key takeaways, trends, challenges, solutions, or impacts highlighted in the text. Ensure that each learning point contributes to a deeper understanding of the subject matter without relying on context from other points.
+                Summary: Must Analyze the provided passage and extract 10 standalone learning briefs each of which should have at least 50 words. It is very important that there must be minimum 10 such learning briefs. It is very important that each learning briefs must have 50 words. This requirement is non-negotiable. Each learning brief must encapsulate a distinct aspect of the topic discussed, comprehensible in isolation. Focus on articulating key takeaways, trends, challenges, solutions, or impacts highlighted in the text. Ensure that each learning brief contributes to a deeper understanding of the subject matter without relying on context from other points. You should also make sure not to include acronyms without their expanded version because if these learning briefs were to be read in isolation, such acronyms would not make sense to the learner.
 
-                Keywords: List all relevant keywords from the user's message as hashtags. Additionally, include related keywords that might not be explicitly mentioned but are relevant to the subject matter.
+                Keywords: List all relevant keywords from the provided passage as hashtags. Additionally, include related keywords that might not be explicitly mentioned but are relevant to the subject matter. Include all proper nouns like names of people and places appearing in the provided passage as hashtags.
                 """,
             },
             {"role": "user", "content": f"{text}"},
@@ -191,7 +191,7 @@ def analyze(text):
             {"role": "system", "content": "You are a greate and sensitive assistant for generating multiple questions and answers"},
             {
                 "role": "system",
-                "content": """Split the provided content in 5 equal parts. That is if the provided content has 1000 words, split the content into 5 parts of 200 words each. Then generate one multiple choice question for each of the 5 parts from the content. Each question should have 4 options, with one correct answer. The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers. The explanation should avoid direct references to the user's message.""",
+                "content": "You have been provided with a passage. Split the provided passage in 5 equal parts. That is if the provided content has 1000 words, split the content into 5 parts of 200 words each. Then generate one multiple choice question for each of the 5 parts from the content. Each question should have 4 options, with one correct answer. The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers. The explanation should avoid direct references to the user's message.",
             },
             {"role": "user", "content": f"{text}"},
         ],
