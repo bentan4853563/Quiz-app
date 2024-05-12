@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import time
+from datetime import datetime 
 import math
 from logging.handlers import RotatingFileHandler
 
@@ -14,24 +15,27 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request, g
 from flask_cors import CORS
-from gevent import monkey
+# from gevent import monkey
 from openai import OpenAI
 from werkzeug.utils import secure_filename
+from pymongo import MongoClient
 from youtube_transcript_api import YouTubeTranscriptApi
 
-monkey.patch_all()
+# monkey.patch_all()
 
 ALLOWED_EXTENSIONS = {"pdf"}
 
 load_dotenv()
 
 api_key = os.getenv("OPENAI_API_KEY")
-
 client = OpenAI(api_key=api_key)
 
 app = Flask(__name__)
-
 CORS(app)
+
+mongo_client = MongoClient('mongodb+srv://nicolas1303563:awIKKGrgf4GmVYkV@cluster0.w3yzl84.mongodb.net/')
+db = mongo_client['Lurny']
+collection = db['contents']
 
 # Configure the logger
 app.logger.setLevel(logging.INFO)
@@ -219,6 +223,14 @@ def extract_cover_image(url):
         return cover_image["src"]
     return None
 
+def save_content(url, content):
+  """Function save content to database"""
+  document = {
+    'url': url,
+    'content': content,
+    'timestamp': datetime.utcnow()
+  }
+  collection.insert_one(document)
 
 @app.route("/fetch", methods=["POST"])
 def fetch_data_from_url():
@@ -278,11 +290,13 @@ def fetch_data_from_url():
             ]
             combined_text = "".join(text_elements).strip()
         
+        save_content(url, combined_text)
+        
         num_tokens = num_tokens_from_string(combined_text, "gpt-3.5-turbo")
         num_parts = math.ceil(num_tokens / 16385) 
         
         splits = split_content_evenly(combined_text, num_parts) 
-        
+                
         results = []
         for split in splits:                        
             summary_content = summarize(split)
@@ -298,7 +312,7 @@ def fetch_data_from_url():
                 }
             )
             results.append(json_string)
-        print(json_string + "\n")
+        print(results)
 
         end = time.time()
         print(end - start, "s")
@@ -358,6 +372,60 @@ def upload_pdf():
 
     return jsonify({"error": "Invalid file extension"}), 400
 
+@app.route("/get_quiz", methods=["POST"])
+def generage_quiz():
+    """Function analyze"""    
+    data = request.get_json()
+    stub = data["stub"]
+
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "get_question_answer",
+                "description": "Generate question and answers",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "question": {
+                            "type": "string",
+                            "description": "question",
+                        },
+                        "answer": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "available answer",
+                        },
+                        "correctanswer": {
+                            "type": "string",
+                            "description": "correct answer",
+                        },
+                        "explanation": {"type": "string", "description": "explanation"},
+                    },
+                    "required": ["question", "answer", "correctanswer", "explanation"],
+                },
+            },
+        }
+    ]    
+    
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a greate and sensitive assistant for generating multiple questions and answers"},
+            {
+                "role": "system",
+                "content": "You have been provided with a 'learning brief' which encapsulates a distinct aspect of the topic discussed and capable of being comprehensible in isolation. In order for the learner to learn the key takeaway from the 'learning brief', you will create a multiple-choice question  to help memorize the given learning brief. Please provide four answer choices, with one being the correct choice that encapsulates the main idea of the statement. The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers.",
+            },
+            {"role": "user", "content": f"{stub}"},
+        ],
+        tools=tools
+    )    
+
+    output = []
+    for res in response.choices[0].message.tool_calls:
+        output.append(res.function.arguments)
+        print("output", output)
+    return output[0] 
 
 def allowed_file(filename):
     """Function allowed_file"""    
@@ -367,10 +435,11 @@ def allowed_file(filename):
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
-        port=5173,
+        port=5111,
         threaded=True,
-        ssl_context=(
-            "/etc/letsencrypt/live/lurny.net/cert.pem",
-            "/etc/letsencrypt/live/lurny.net/privkey.pem",
-        ),
+        debug=True
+        # ssl_context=(
+        #     "/etc/letsencrypt/live/lurny.net/cert.pem",
+        #     "/etc/letsencrypt/live/lurny.net/privkey.pem",
+        # ),
     )
