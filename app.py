@@ -135,7 +135,6 @@ def summarize(text):
     
     with open(SUMMARY_PROMPT_FILE_PATH, encoding='utf-8') as file:
         prompt = file.read()
-        print(prompt)
         
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
@@ -187,7 +186,6 @@ def quiz(text):
     
     with open(QUIZ_PROMPT_FILE_PATH, encoding='utf-8') as file:
         prompt = file.read()
-        print(prompt)
         
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
@@ -412,7 +410,6 @@ def generage_quiz():
     
     with open(STUB_PROMPT_FILE_PATH, encoding='utf-8') as file:
         prompt = file.read()
-        print(prompt)
         
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
