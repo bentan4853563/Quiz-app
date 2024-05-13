@@ -25,6 +25,10 @@ from youtube_transcript_api import YouTubeTranscriptApi
 
 ALLOWED_EXTENSIONS = {"pdf"}
 
+SUMMARY_PROMPT_FILE_PATH = 'Prompts/summary.txt'
+QUIZ_PROMPT_FILE_PATH = 'Prompts/quiz.txt'
+STUB_PROMPT_FILE_PATH = 'Prompts/stub.txt'
+
 load_dotenv()
 
 api_key = os.getenv("OPENAI_API_KEY")
@@ -129,19 +133,15 @@ def summarize(text):
         }
     ]
     
+    with open(SUMMARY_PROMPT_FILE_PATH, encoding='utf-8') as file:
+        prompt = file.read()
+        print(prompt)
+        
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {
-                "role": "system",
-                "content": """You have been provided with a user's message. Read the provided user's message and create an engaging title, like for example "How Does X Work?" or "7 Key Strategies to Achieve Y"). The title should not exceed 10 words. 
-
-                Summary: First you must analyze the provided user's message. Then provide 10 standalone learning briefs each of which should have at least 50 words. Each learning brief must encapsulate a distinct aspect of the topic discussed that can be understood by the learner without relying on context from other points. Focus on articulating key takeaways, trends, challenges, solutions, or impacts highlighted in the provided user's message. Ensure that each learning brief contributes to a deeper understanding of the subject matter without relying on context from other points. You should also make sure not to include acronyms without their expanded version because if these learning briefs were to be read in isolation, such acronyms would not make sense to the learner. When you mention the name of a person in a stub, you have to mention the full name since the stub has to be read and understood in isolation.
-
-                Keywords: List all relevant keywords from the provided user's message as hashtags. Additionally, include related keywords that might not be explicitly mentioned but are relevant to the subject matter. Include all proper nouns like names of people and places appearing in the provided user's message as hashtags.
-                """,
-            },
-            {"role": "user", "content": f"{text}"},
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": text},
         ],
         tools=tools,
     )
@@ -152,7 +152,7 @@ def summarize(text):
 
     return output[0]
 
-def analyze(text):
+def quiz(text):
     """Function analyze"""    
 
     tools = [
@@ -185,18 +185,18 @@ def analyze(text):
         }
     ]    
     
+    with open(QUIZ_PROMPT_FILE_PATH, encoding='utf-8') as file:
+        prompt = file.read()
+        print(prompt)
+        
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "You are a greate and sensitive assistant for generating multiple questions and answers"},
-            {
-                "role": "system",
-                "content": """Split the provided user's message in 5 equal parts. That is if the provided user's message has 1000 words, split the user's message into 5 parts of 200 words each. Then generate one multiple choice question for each of the 5 parts from the user's message. Each question should have 4 options, with one correct answer. The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers. The explanation should avoid direct references to the user's message.""",
-            },
-            {"role": "user", "content": f"{text}"},
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": text},
         ],
-        tools=tools
-    )    
+        tools=tools,
+    )   
 
     output = []
     for res in response.choices[0].message.tool_calls:
@@ -204,12 +204,13 @@ def analyze(text):
     return output
 
 def extract_cover_image(url):
-    """Function extract_cover_image"""      
+    """Function extract_cover_image"""    
+    
     page = requests.get(url)
     soup = BeautifulSoup(page.content, "html.parser")
     cover_image = soup.find(
         "meta", property="og:image"
-    ) 
+    )  # Check for Open Graph image tag
     if cover_image:
         return cover_image["content"]
     cover_image = soup.find("meta", itemprop="image")  # Check for Schema.org image tag
@@ -290,15 +291,14 @@ def fetch_data_from_url():
         save_content(url, combined_text)
         
         num_tokens = num_tokens_from_string(combined_text, "gpt-3.5-turbo")
+        num_parts = math.ceil(num_tokens / 16385) 
         
-        num_parts = math.ceil(num_tokens / 10000) 
-        print("num_parts", num_tokens, num_parts)
         splits = split_content_evenly(combined_text, num_parts) 
                 
         results = []
         for split in splits:                        
             summary_content = summarize(split)
-            question_content = analyze(split)
+            question_content = quiz(split)
 
             json_string = json.dumps(
                 {
@@ -320,7 +320,60 @@ def fetch_data_from_url():
     except Exception as e:
         app.logger.error(f"Error occurred: {e}")
         return jsonify({"error": str(e)}), 500
- 
+    
+@app.route("/upload_pdf", methods=["POST"])
+def upload_pdf():
+    """Function upload_pdf"""    
+    openai_client = g.openai_client
+    # Check if the post request has the file part
+    if "file" not in request.files:
+        return jsonify({"error": "No file part"}), 400
+
+    file = request.files["file"]
+
+    # If user does not select file or submits an empty part without filename
+    if file.filename == "":
+        return jsonify({"error": "No selected file"}), 400
+
+    if file and allowed_file(file.filename):
+        # Secure the filename
+        start = time.time()
+        filename = secure_filename(file.filename)
+
+        # Read the PDF content
+        pdf_reader = PyPDF2.PdfReader(io.BytesIO(file.read()()))
+        text = ""
+        for page in pdf_reader.pages:
+            text += page.extract_text() + " "
+
+        # Do something with the extracted text
+        # For example, returning it
+
+        summary_content = summarize(text)
+        question_content = quiz(text)
+
+        print(summary_content, question_content)
+
+        json_string = json.dumps(
+            {
+                "summary_content": summary_content,
+                "questions": question_content,
+                "fileName": filename,
+                "media": "PDF",
+            }
+        )
+
+        end = time.time()
+        print(end - start, "s")
+
+        return json_string
+
+    return jsonify({"error": "Invalid file extension"}), 400
+
+def allowed_file(filename):
+    """Function allowed_file"""    
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
 @app.route("/get_quiz", methods=["POST"])
 def generage_quiz():
     """Function analyze"""    
@@ -357,17 +410,17 @@ def generage_quiz():
         }
     ]    
     
+    with open(STUB_PROMPT_FILE_PATH, encoding='utf-8') as file:
+        prompt = file.read()
+        print(prompt)
+        
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "You are a greate and sensitive assistant for generating multiple questions and answers"},
-            {
-                "role": "system",
-                "content": "You have been provided with a 'learning brief' which encapsulates a distinct aspect of the topic discussed and capable of being comprehensible in isolation. In order for the learner to learn the key takeaway from the 'learning brief', you will create a multiple-choice question  to help memorize the given learning brief. Please provide four answer choices, with one being the correct choice that encapsulates the main idea of the statement. The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers.",
-            },
-            {"role": "user", "content": f"{stub}"},
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": stub},
         ],
-        tools=tools
+        tools=tools,
     )    
 
     output = []
@@ -375,60 +428,66 @@ def generage_quiz():
         output.append(res.function.arguments)
         print("output", output)
     return output[0] 
+
+@app.route("/update_prompts", method=["POST"])
+def update_prompts():
+    """Endpoint to update prompt files based on JSON input"""
+    data = request.get_json()
+    
+    summary_prompt = data.get('summary')
+    quiz_prompt = data.get('quiz')
+    stub_prompt = data.get('stub')
+    
+    # Check if any of the prompts are provided and update accordingly
+    if summary_prompt and not update_prompt_file(SUMMARY_PROMPT_FILE_PATH, summary_prompt):
+        return jsonify({"error": f"Failed to update summary prompt"}), 500
+    
+    if quiz_prompt and not update_prompt_file(QUIZ_PROMPT_FILE_PATH, quiz_prompt):
+        return jsonify({"error": "Failed to update quiz prompt"}), 500
+    
+    if stub_prompt and not update_prompt_file(STUB_PROMPT_FILE_PATH, stub_prompt):
+        return jsonify({"error": "Failed to update stub prompt"}), 500
+    
+    return jsonify({"message": "Prompts updated successfully"}), 200
+
+def get_prompts():
+    """Endpoint to get the current prompts"""
+    summary_prompt = read_prompt_file(SUMMARY_PROMPT_FILE_PATH)
+    quiz_prompt = read_prompt_file(QUIZ_PROMPT_FILE_PATH)
+    stub_prompt = read_prompt_file(STUB_PROMPT_FILE_PATH)
+
+    # Ensure all prompts were read successfully
+    if summary_prompt is None or quiz_prompt is None or stub_prompt is None:
+        return jsonify({"error": "Failed to read one or more prompt files"}), 500
+    
+    # Return the prompts in JSON format
+    prompts = {
+        "summary": summary_prompt,
+        "quiz": quiz_prompt,
+        "stub": stub_prompt,
+    }
+    
+    return jsonify(prompts), 200
+
+def read_prompt_file(file_path):
+    """Function to read the content of a prompt file"""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            return file.read()
+    except Exception as e:
+        app.logger.error(f"Failed to read prompt file {file_path}: {e}")
+        return None
+          
+def update_prompt_file(file_path, new_prompt):
+    """Function to update a prompt file"""
+    try:
+        with open(file_path, 'w', encoding='utf-8') as file:
+            file.write(new_prompt)
+        return True
+    except Exception as e:
+        app.logger.error(f"Failed to update prompt file {file_path}: {e}")
+        return False
    
-@app.route("/upload_pdf", methods=["POST"])
-def upload_pdf():
-    """Function upload_pdf"""    
-    openai_client = g.openai_client
-    # Check if the post request has the file part
-    if "file" not in request.files:
-        return jsonify({"error": "No file part"}), 400
-
-    file = request.files["file"]
-
-    # If user does not select file or submits an empty part without filename
-    if file.filename == "":
-        return jsonify({"error": "No selected file"}), 400
-
-    if file and allowed_file(file.filename):
-        # Secure the filename
-        start = time.time()
-        filename = secure_filename(file.filename)
-
-        # Read the PDF content
-        pdf_reader = PyPDF2.PdfReader(io.BytesIO(file.read()))
-        text = ""
-        for page in pdf_reader.pages:
-            text += page.extract_text() + " "
-
-        # Do something with the extracted text
-        # For example, returning it
-
-        summary_content = summarize(text)
-        question_content = analyze(text)
-
-        print(summary_content, question_content)
-
-        json_string = json.dumps(
-            {
-                "summary_content": summary_content,
-                "questions": question_content,
-                "fileName": filename,
-                "media": "PDF",
-            }
-        )
-
-        end = time.time()
-        print(end - start, "s")
-
-        return json_string
-
-    return jsonify({"error": "Invalid file extension"}), 400
-
-def allowed_file(filename):
-    """Function allowed_file"""    
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
-
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
