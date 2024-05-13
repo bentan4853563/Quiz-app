@@ -134,11 +134,11 @@ def summarize(text):
         messages=[
             {
                 "role": "system",
-                "content": """You have been provided with a passage. Read the provided passage and create an engaging title, like for example "How Does X Work?" or "7 Key Strategies to Achieve Y"). The title should not exceed 10 words. 
+                "content": """You have been provided with a user's message. Read the provided user's message and create an engaging title, like for example "How Does X Work?" or "7 Key Strategies to Achieve Y"). The title should not exceed 10 words. 
 
-                Summary: First you must analyze the provided passage. Then provide 10 standalone learning briefs each of which should have at least 50 words. Each learning brief must encapsulate a distinct aspect of the topic discussed that can be understood by the learner without relying on context from other points. Focus on articulating key takeaways, trends, challenges, solutions, or impacts highlighted in the provided passage. Ensure that each learning brief contributes to a deeper understanding of the subject matter without relying on context from other points. You should also make sure not to include acronyms without their expanded version because if these learning briefs were to be read in isolation, such acronyms would not make sense to the learner. When you mention the name of a person in a stub, you have to mention the full name since the stub has to be read and understood in isolation.
+                Summary: First you must analyze the provided user's message. Then provide 10 standalone learning briefs each of which should have at least 50 words. Each learning brief must encapsulate a distinct aspect of the topic discussed that can be understood by the learner without relying on context from other points. Focus on articulating key takeaways, trends, challenges, solutions, or impacts highlighted in the provided user's message. Ensure that each learning brief contributes to a deeper understanding of the subject matter without relying on context from other points. You should also make sure not to include acronyms without their expanded version because if these learning briefs were to be read in isolation, such acronyms would not make sense to the learner. When you mention the name of a person in a stub, you have to mention the full name since the stub has to be read and understood in isolation.
 
-                Keywords: List all relevant keywords from the provided passage as hashtags. Additionally, include related keywords that might not be explicitly mentioned but are relevant to the subject matter. Include all proper nouns like names of people and places appearing in the provided passage as hashtags.
+                Keywords: List all relevant keywords from the provided user's message as hashtags. Additionally, include related keywords that might not be explicitly mentioned but are relevant to the subject matter. Include all proper nouns like names of people and places appearing in the provided user's message as hashtags.
                 """,
             },
             {"role": "user", "content": f"{text}"},
@@ -191,7 +191,7 @@ def analyze(text):
             {"role": "system", "content": "You are a greate and sensitive assistant for generating multiple questions and answers"},
             {
                 "role": "system",
-                "content": """Split the provided passage in 5 equal parts. That is if the provided passage has 1000 words, split the passage into 5 parts of 200 words each. Then generate one multiple choice question for each of the 5 parts from the passage. Each question should have 4 options, with one correct answer. The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers. The explanation should avoid direct references to the user's message.""",
+                "content": """Split the provided user's message in 5 equal parts. That is if the provided user's message has 1000 words, split the user's message into 5 parts of 200 words each. Then generate one multiple choice question for each of the 5 parts from the user's message. Each question should have 4 options, with one correct answer. The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers. The explanation should avoid direct references to the user's message.""",
             },
             {"role": "user", "content": f"{text}"},
         ],
