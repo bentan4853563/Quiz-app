@@ -191,7 +191,19 @@ def analyze(text):
             {"role": "system", "content": "You are a greate and sensitive assistant for generating multiple questions and answers"},
             {
                 "role": "system",
-                "content": "You have been provided with a passage from which you will create a minimum of 5 multiple choice quiz questions.  Each question should have 4 options, with one correct answer. The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers. The explanation should avoid direct references to the given passage like using the term 'according to the passage'",
+                "content": """You've been provided with a passage to create 5 multiple-choice quiz questions, each demonstrating a different type of question:
+
+                Factual Recall: Craft a question that requires recalling specific information from the passage. Provide 4 options, with one correct answer.
+
+                Inference: Formulate a question that demands drawing conclusions or making educated guesses based on implicit information in the passage. Offer 4 options, with one correct answer.
+
+                Application: Create a question that requires applying the knowledge or concepts discussed in the passage to a new scenario or problem. Include 4 options, with one correct answer.
+
+                Analysis: Develop a question that involves breaking down the passage or its components to understand their meaning, structure, or implications. Present 4 options, with one correct answer.
+
+                Evaluation: Frame a question that prompts critical thinking and judgment about the content of the passage. Provide 4 options, with one correct answer.
+
+                Ensure that each question is accompanied by a clear explanation for incorrect answer choices, avoiding direct references to the passage.""",
             },
             {"role": "user", "content": f"{text}"},
         ],
