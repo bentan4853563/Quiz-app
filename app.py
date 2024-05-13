@@ -450,6 +450,7 @@ def update_prompts():
     
     return jsonify({"message": "Prompts updated successfully"}), 200
 
+@app.route("/get_prompts", methods=["GET"])
 def get_prompts():
     """Endpoint to get the current prompts"""
     summary_prompt = read_prompt_file(SUMMARY_PROMPT_FILE_PATH)
