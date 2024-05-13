@@ -429,7 +429,7 @@ def generage_quiz():
         print("output", output)
     return output[0] 
 
-@app.route("/update_prompts", method=["POST"])
+@app.route("/update_prompts", methods=["POST"])
 def update_prompts():
     """Endpoint to update prompt files based on JSON input"""
     data = request.get_json()
