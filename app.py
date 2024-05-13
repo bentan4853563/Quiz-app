@@ -434,6 +434,8 @@ def update_prompts():
     """Endpoint to update prompt files based on JSON input"""
     data = request.get_json()
     
+    print(data)
+    
     summary_prompt = data.get('summary')
     quiz_prompt = data.get('quiz')
     stub_prompt = data.get('stub')
