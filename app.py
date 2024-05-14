@@ -29,6 +29,9 @@ SUMMARY_PROMPT_FILE_PATH = 'Prompts/summary.txt'
 QUIZ_PROMPT_FILE_PATH = 'Prompts/quiz.txt'
 STUB_PROMPT_FILE_PATH = 'Prompts/stub.txt'
 
+MAX_RETRIES = 3  
+RETRY_DELAY = 1
+
 load_dotenv()
 
 api_key = os.getenv("OPENAI_API_KEY")
@@ -151,15 +154,27 @@ def summarize(text):
 
     return output[0]
 
+def quiz_from_stub(text):
+    """Function Generate Quizes"""    
+    splits = split_content_evenly(text, 5) 
+    print("quizes", len(splits))
+    quizes = []
+    for split in splits:
+        quiz_object = quiz_from_stub(split)
+        print("Quiz")
+        quizes.append(quiz_object)
+    
+    return quizes        
+
 def quiz(text):
-    """Function analyze"""    
+    """Function Generate Quiz"""
 
     tools = [
         {
             "type": "function",
             "function": {
-                "name": "generate_quizes",
-                "description": "Generate questions and answers, correct answer, explanation for each question",
+                "name": "get_question_answer",
+                "description": "Generate question and answers, correctanswer, explanation for the question",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -170,7 +185,7 @@ def quiz(text):
                         "answer": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "available answer",
+                            "description": "available answers",
                         },
                         "correctanswer": {
                             "type": "string",
@@ -182,24 +197,40 @@ def quiz(text):
                 },
             },
         }
-    ]    
-    
-    with open(QUIZ_PROMPT_FILE_PATH, encoding='utf-8') as file:
-        prompt = file.read()
-        
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": prompt},
-            {"role": "user", "content": text},
-        ],
-        tools=tools,
-    )   
+    ]
 
-    output = []
-    for res in response.choices[0].message.tool_calls:
-        output.append(res.function.arguments)
-    return output
+    attempts = 0
+
+    while attempts < MAX_RETRIES:
+        try:
+            with open(QUIZ_PROMPT_FILE_PATH, encoding='utf-8') as file:
+                prompt = file.read()
+
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": text},
+                ],
+                tools=tools,
+            )
+
+            if response.choices[0].message.tool_calls is not None:
+                output = []
+                for res in response.choices[0].message.tool_calls:
+                    output.append(res.function.arguments)
+                return output[0]
+
+            # If we got a response but tool_calls is None, raise an exception to retry
+            raise ValueError("Received None from tool_calls")
+
+        except (ValueError, AttributeError) as e:
+            attempts += 1
+            print(f"Attempt {attempts} failed with error: {e}. Retrying...")
+            time.sleep(RETRY_DELAY)
+
+    # If we've exceeded the maximum number of retries, raise an exception
+    raise RuntimeError("Max retries exceeded. Unable to get a valid response.")
 
 def extract_cover_image(url):
     """Function extract_cover_image"""    
@@ -296,7 +327,7 @@ def fetch_data_from_url():
         results = []
         for split in splits:                        
             summary_content = summarize(split)
-            question_content = quiz(split)
+            question_content = quiz_from_stub(split)
 
             json_string = json.dumps(
                 {
@@ -348,7 +379,7 @@ def upload_pdf():
         # For example, returning it
 
         summary_content = summarize(text)
-        question_content = quiz(text)
+        question_content = quiz_from_stub(text)
 
         print(summary_content, question_content)
 
