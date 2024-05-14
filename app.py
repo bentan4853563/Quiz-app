@@ -160,7 +160,7 @@ def quiz_from_stub(text):
     print("quizes", len(splits))
     quizes = []
     for split in splits:
-        quiz_object = quiz_from_stub(split)
+        quiz_object = quiz(split)
         print("Quiz")
         quizes.append(quiz_object)
     
