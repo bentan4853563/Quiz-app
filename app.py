@@ -123,18 +123,6 @@ def summarize(text):
 
     return output[0]
 
-# def quiz_from_stub(text):
-#     """Function Generate Quizes"""    
-#     splits = split_content_evenly(text, 5) 
-#     print("quizes", len(splits))
-#     quizes = []
-#     for split in splits:
-#         quiz_object = quiz(split)
-#         print("Quiz")
-#         quizes.append(quiz_object)
-    
-#     return quizes     
-
 def quiz_from_stub(text):
     """Function Generate Quizzes"""
     # Assuming split_content_evenly is a function that splits the text into even parts
@@ -176,7 +164,7 @@ def quiz(text):
                         "answer": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "available answers",
+                            "description": "answers",
                         },
                         "correctanswer": {
                             "type": "string",
