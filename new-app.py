@@ -25,6 +25,13 @@ from youtube_transcript_api import YouTubeTranscriptApi
 
 ALLOWED_EXTENSIONS = {"pdf"}
 
+SUMMARY_PROMPT_FILE_PATH = 'Prompts/summary.txt'
+QUIZ_PROMPT_FILE_PATH = 'Prompts/quiz.txt'
+STUB_PROMPT_FILE_PATH = 'Prompts/stub.txt'
+
+MAX_RETRIES = 3  
+RETRY_DELAY = 1
+
 load_dotenv()
 
 api_key = os.getenv("OPENAI_API_KEY")
@@ -129,19 +136,14 @@ def summarize(text):
         }
     ]
     
+    with open(SUMMARY_PROMPT_FILE_PATH, encoding='utf-8') as file:
+        prompt = file.read()
+        
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {
-                "role": "system",
-                "content": """ You must create an engaging, question-based or list-based title that encapsulates the essence of the user's message. The title should not exceed 10 words and should invite curiosity or highlight the utility of the content (e.g., "How Does X Work?" or "7 Key Strategies to Achieve Y").
-
-                Summary: Must Analyze the provided passage and extract individual insights that offer 10 standalone learning points. It is very important that there must be minimum 10 such learning points. It is very important that each learning point must have 30 words.  That is, point 1 must have 30 words, learning point 2 must have 30 words etc. This requirement is non-negotiable. Each learning point must encapsulate a distinct aspect of the topic discussed, comprehensible in isolation. Focus on articulating key takeaways, trends, challenges, solutions, or impacts highlighted in the text. Ensure that each learning point contributes to a deeper understanding of the subject matter without relying on context from other points.
-
-                Keywords: List all relevant keywords from the user's message as hashtags. Additionally, include related keywords that might not be explicitly mentioned but are relevant to the subject matter.
-                """,
-            },
-            {"role": "user", "content": f"{text}"},
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": text},
         ],
         tools=tools,
     )
@@ -152,16 +154,27 @@ def summarize(text):
 
     return output[0]
 
+def quiz_from_stub(text):
+    """Function Generate Quizes"""    
+    splits = split_content_evenly(text, 5) 
+    print("quizes", len(splits))
+    quizes = []
+    for split in splits:
+        quiz_object = quiz(split)
+        print("Quiz")
+        quizes.append(quiz_object)
+    
+    return quizes        
 
-def analyze(text):
-    """Function analyze"""    
+def quiz(text):
+    """Function Generate Quiz"""
 
     tools = [
         {
             "type": "function",
             "function": {
                 "name": "get_question_answer",
-                "description": "Generate question and answers",
+                "description": "Generate question and answers, correctanswer, explanation for the question",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -172,7 +185,7 @@ def analyze(text):
                         "answer": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "available answer",
+                            "description": "available answers",
                         },
                         "correctanswer": {
                             "type": "string",
@@ -184,26 +197,40 @@ def analyze(text):
                 },
             },
         }
-    ]    
-    
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "You are a greate and sensitive assistant for generating multiple questions and answers"},
-            {
-                "role": "system",
-                "content": """Split the provided passage in 5 equal parts. That is if the provided passage has 1000 words, split the passage into 5 parts of 200 words each. Then generate one multiple choice question for each of the 5 parts from the passage. Each question should have 4 options, with one correct answer. The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers. The explanation should avoid direct references to the user's message.""",
-            },
-            {"role": "user", "content": f"{text}"},
-        ],
-        tools=tools
-    )    
+    ]
 
-    output = []
-    for res in response.choices[0].message.tool_calls:
-        output.append(res.function.arguments)
-    return output
+    attempts = 0
 
+    while attempts < MAX_RETRIES:
+        try:
+            with open(QUIZ_PROMPT_FILE_PATH, encoding='utf-8') as file:
+                prompt = file.read()
+
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": text},
+                ],
+                tools=tools,
+            )
+
+            if response.choices[0].message.tool_calls is not None:
+                output = []
+                for res in response.choices[0].message.tool_calls:
+                    output.append(res.function.arguments)
+                return output[0]
+
+            # If we got a response but tool_calls is None, raise an exception to retry
+            raise ValueError("Received None from tool_calls")
+
+        except (ValueError, AttributeError) as e:
+            attempts += 1
+            print(f"Attempt {attempts} failed with error: {e}. Retrying...")
+            time.sleep(RETRY_DELAY)
+
+    # If we've exceeded the maximum number of retries, raise an exception
+    raise RuntimeError("Max retries exceeded. Unable to get a valid response.")
 
 def extract_cover_image(url):
     """Function extract_cover_image"""    
@@ -300,7 +327,9 @@ def fetch_data_from_url():
         results = []
         for split in splits:                        
             summary_content = summarize(split)
-            question_content = analyze(split)
+            print("Summary")
+            question_content = quiz_from_stub(split)
+            print("Quizes")
 
             json_string = json.dumps(
                 {
@@ -343,7 +372,7 @@ def upload_pdf():
         filename = secure_filename(file.filename)
 
         # Read the PDF content
-        pdf_reader = PyPDF2.PdfReader(io.BytesIO(file.read()))
+        pdf_reader = PyPDF2.PdfReader(io.BytesIO(file.read()()))
         text = ""
         for page in pdf_reader.pages:
             text += page.extract_text() + " "
@@ -352,7 +381,7 @@ def upload_pdf():
         # For example, returning it
 
         summary_content = summarize(text)
-        question_content = analyze(text)
+        question_content = quiz_from_stub(text)
 
         print(summary_content, question_content)
 
@@ -372,8 +401,12 @@ def upload_pdf():
 
     return jsonify({"error": "Invalid file extension"}), 400
 
+def allowed_file(filename):
+    """Function allowed_file"""    
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
 @app.route("/get_quiz", methods=["POST"])
-def generage_quiz():
+def generage_quiz_from_stub():
     """Function analyze"""    
     data = request.get_json()
     stub = data["stub"]
@@ -408,17 +441,17 @@ def generage_quiz():
         }
     ]    
     
+    with open(STUB_PROMPT_FILE_PATH, encoding='utf-8') as file:
+        prompt = file.read()
+        print(prompt)
+        
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "You are a greate and sensitive assistant for generating multiple questions and answers"},
-            {
-                "role": "system",
-                "content": "Create a multiple-choice question to help memorize the givem user's message. Please provide four answer choices, with one being the correct choice that encapsulates the main idea of the statement.  The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers. The explanation should avoid direct references to the statement.",
-            },
-            {"role": "user", "content": f"{stub}"},
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": stub},
         ],
-        tools=tools
+        tools=tools,
     )    
 
     output = []
@@ -427,11 +460,65 @@ def generage_quiz():
         print("output", output)
     return output[0] 
 
-def allowed_file(filename):
-    """Function allowed_file"""    
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+@app.route("/update_prompts", methods=["POST"])
+def update_prompts():
+    """Endpoint to update prompt files based on JSON input"""
+    data = request.get_json()
+    
+    summary_prompt = data.get('summary')
+    quiz_prompt = data.get('quiz')
+    stub_prompt = data.get('stub')
+    
+    # Check if any of the prompts are provided and update accordingly
+    if summary_prompt and not update_prompt_file(SUMMARY_PROMPT_FILE_PATH, summary_prompt):
+        return jsonify({"error": f"Failed to update summary prompt"}), 500
+    
+    if quiz_prompt and not update_prompt_file(QUIZ_PROMPT_FILE_PATH, quiz_prompt):
+        return jsonify({"error": "Failed to update quiz prompt"}), 500
+    
+    if stub_prompt and not update_prompt_file(STUB_PROMPT_FILE_PATH, stub_prompt):
+        return jsonify({"error": "Failed to update stub prompt"}), 500
+    
+    return jsonify({"message": "Prompts updated successfully"}), 200
 
+def get_prompts():
+    """Endpoint to get the current prompts"""
+    summary_prompt = read_prompt_file(SUMMARY_PROMPT_FILE_PATH)
+    quiz_prompt = read_prompt_file(QUIZ_PROMPT_FILE_PATH)
+    stub_prompt = read_prompt_file(STUB_PROMPT_FILE_PATH)
 
+    # Ensure all prompts were read successfully
+    if summary_prompt is None or quiz_prompt is None or stub_prompt is None:
+        return jsonify({"error": "Failed to read one or more prompt files"}), 500
+    
+    # Return the prompts in JSON format
+    prompts = {
+        "summary": summary_prompt,
+        "quiz": quiz_prompt,
+        "stub": stub_prompt,
+    }
+    
+    return jsonify(prompts), 200
+
+def read_prompt_file(file_path):
+    """Function to read the content of a prompt file"""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            return file.read()
+    except Exception as e:
+        app.logger.error(f"Failed to read prompt file {file_path}: {e}")
+        return None
+          
+def update_prompt_file(file_path, new_prompt):
+    """Function to update a prompt file"""
+    try:
+        with open(file_path, 'w', encoding='utf-8') as file:
+            file.write(new_prompt)
+        return True
+    except Exception as e:
+        app.logger.error(f"Failed to update prompt file {file_path}: {e}")
+        return False
+    
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",

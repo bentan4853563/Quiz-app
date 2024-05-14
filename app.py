@@ -1,13 +1,11 @@
 import io
 import json
-import logging
 import os
 import re
 import time
 from datetime import datetime 
 import math
-from logging.handlers import RotatingFileHandler
-
+from concurrent.futures import ThreadPoolExecutor
 import PyPDF2
 import requests
 import tiktoken
@@ -21,7 +19,13 @@ from werkzeug.utils import secure_filename
 from pymongo import MongoClient
 from youtube_transcript_api import YouTubeTranscriptApi
 
-# monkey.patch_all()
+load_dotenv()
+
+api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=api_key)
+
+app = Flask(__name__)
+CORS(app)
 
 ALLOWED_EXTENSIONS = {"pdf"}
 
@@ -32,44 +36,9 @@ STUB_PROMPT_FILE_PATH = 'Prompts/stub.txt'
 MAX_RETRIES = 3  
 RETRY_DELAY = 1
 
-load_dotenv()
-
-api_key = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=api_key)
-
-app = Flask(__name__)
-CORS(app)
-
-mongo_client = MongoClient('mongodb+srv://nicolas1303563:awIKKGrgf4GmVYkV@cluster0.w3yzl84.mongodb.net/')
+mongo_client = MongoClient('mongodb+srv://krish:yXMdTPwSdTRo7qHY@serverlessinstance0.18otqeg.mongodb.net/')
 db = mongo_client['Lurny']
 collection = db['contents']
-
-# Configure the logger
-app.logger.setLevel(logging.INFO)
-
-# Create a RotatingFileHandler to log to a file
-LOG_FILE = 'app.log'
-file_handler = RotatingFileHandler(LOG_FILE, maxBytes=10000, backupCount=5)
-file_handler.setFormatter(logging.Formatter(
-    '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
-app.logger.addHandler(file_handler)
-
-# Log a message to test the logging setup
-app.logger.info('Application startup')
-
-@app.before_request
-def before_request():
-    """Function before_request"""
-    app.logger.info(f"Incoming request: {request.method} {request.url}")
-    # g.openai_client = OpenAI(api_key=api_key)
-
-@app.after_request
-def after_request(response):
-    """Function after_request"""    
-    app.logger.info(f"Outgoing response: {response.status_code}")
-    # if hasattr(g, 'openai_client'):
-        # g.openai_client.close()
-    return response
 
 def get_transcript(video_id):
     """Function get_transcript from youtube video id"""        
@@ -154,17 +123,39 @@ def summarize(text):
 
     return output[0]
 
-def quiz_from_stub(text):
-    """Function Generate Quizes"""    
-    splits = split_content_evenly(text, 5) 
-    print("quizes", len(splits))
-    quizes = []
-    for split in splits:
-        quiz_object = quiz(split)
-        print("Quiz")
-        quizes.append(quiz_object)
+# def quiz_from_stub(text):
+#     """Function Generate Quizes"""    
+#     splits = split_content_evenly(text, 5) 
+#     print("quizes", len(splits))
+#     quizes = []
+#     for split in splits:
+#         quiz_object = quiz(split)
+#         print("Quiz")
+#         quizes.append(quiz_object)
     
-    return quizes        
+#     return quizes     
+
+def quiz_from_stub(text):
+    """Function Generate Quizzes"""
+    # Assuming split_content_evenly is a function that splits the text into even parts
+    splits = split_content_evenly(text, 5)
+    print("quizzes", len(splits))
+    
+    def generate_quiz(split):
+        # Assuming quiz is a function that generates a quiz object from a split
+        return quiz(split)
+    
+    quizzes = []
+    # Use ThreadPoolExecutor to execute tasks asynchronously
+    with ThreadPoolExecutor() as executor:
+        # Map the generate_quiz function over the splits
+        future_quizzes = executor.map(generate_quiz, splits)
+        
+        for future_quiz in future_quizzes:
+            print("Quiz")
+            quizzes.append(future_quiz)
+    
+    return quizzes   
 
 def quiz(text):
     """Function Generate Quiz"""
