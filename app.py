@@ -158,8 +158,8 @@ def quiz(text):
         {
             "type": "function",
             "function": {
-                "name": "get_question_answer",
-                "description": "Generate question and answers",
+                "name": "generate_quizes",
+                "description": "Generate questions and answers, correct answer, explanation for each question",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -186,7 +186,7 @@ def quiz(text):
     
     with open(QUIZ_PROMPT_FILE_PATH, encoding='utf-8') as file:
         prompt = file.read()
-    print(prompt)   
+        
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
@@ -195,7 +195,7 @@ def quiz(text):
         ],
         tools=tools,
     )   
-    print(response)
+
     output = []
     for res in response.choices[0].message.tool_calls:
         output.append(res.function.arguments)
