@@ -5,7 +5,7 @@ import re
 import time
 from datetime import datetime 
 import math
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 import PyPDF2
 import requests
 import tiktoken
@@ -29,7 +29,8 @@ CORS(app)
 
 ALLOWED_EXTENSIONS = {"pdf"}
 
-GPT_MODLE="gpt-3.5-turbo"
+MODEL = "gpt-3.5-turbo"
+
 SUMMARY_PROMPT_FILE_PATH = 'Prompts/summary.txt'
 QUIZ_PROMPT_FILE_PATH = 'Prompts/quiz.txt'
 STUB_PROMPT_FILE_PATH = 'Prompts/stub.txt'
@@ -106,10 +107,10 @@ def split_content_evenly(content, parts):
 #     ]
 #     with open(SUMMARY_PROMPT_FILE_PATH, encoding='utf-8') as file:
 #         prompt = file.read()
-#     print(num_tokens_from_string(text + str(tools) + prompt, GPT_MODLE))
+#     print(num_tokens_from_string(text + str(tools) + prompt, MODEL))
         
 #     response = client.chat.completions.create(
-#         model=GPT_MODLE,
+#         model=MODEL,
 #         messages=[
 #             {"role": "system", "content": prompt},
 #             {"role": "user", "content": text},
@@ -164,14 +165,13 @@ def summarize(text):
                 prompt = file.read()
                 
             response = client.chat.completions.create(
-                model=GPT_MODLE,
+                model=MODEL,
                 messages=[
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": text},
                 ],
                 tools=tools,
             )
-            print("summary input:", num_tokens_from_string(text, GPT_MODLE), num_tokens_from_string(text + str(tools) + prompt, GPT_MODLE))
             
             # Check if the response contains the expected output
             if response.choices[0].message.tool_calls is not None:
@@ -239,6 +239,7 @@ def quiz(text):
             },
         }
     ]
+    print("token number of split", num_tokens_from_string(text, MODEL))
     attempts = 0
 
     while attempts < MAX_RETRIES:
@@ -247,14 +248,13 @@ def quiz(text):
                 prompt = file.read()
 
             response = client.chat.completions.create(
-                model=GPT_MODLE,
+                model=MODEL,
                 messages=[
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": text},
                 ],
                 tools=tools,
             )
-            print("token number of split", num_tokens_from_string(text, GPT_MODLE))
 
             if response.choices[0].message.tool_calls is not None:
                 output = []
@@ -267,7 +267,6 @@ def quiz(text):
 
         except (ValueError, AttributeError) as e:
             attempts += 1
-            print(text)
             print(f"Attempt {attempts} failed (Quiz) with error: {e}. Retrying...")
             time.sleep(RETRY_DELAY)
 
@@ -307,6 +306,7 @@ def fetch_data_from_url():
     try:
         data = request.get_json()
         url = data["url"]
+        app.logger.info(f"Processing URL: {url}")
 
         # Initialize variables for the extracted text and media type
         combined_text = ""
@@ -362,7 +362,7 @@ def fetch_data_from_url():
         save_content(url, combined_text)
         
         # Calulate number of tokens for the certain gpt model
-        num_tokens = num_tokens_from_string(combined_text, GPT_MODLE)
+        num_tokens = num_tokens_from_string(combined_text, MODEL)
         print(num_tokens, len(combined_text))
         
         num_parts = math.ceil(num_tokens / 12000) 
@@ -370,30 +370,24 @@ def fetch_data_from_url():
         splits = split_content_evenly(combined_text, num_parts) 
                 
         results = []
-        with ThreadPoolExecutor() as executor:
-            summary_futures = {executor.submit(summarize, split): split for split in splits}
-            quiz_futures = {executor.submit(quiz_from_stub, split): split for split in splits}
+        for split in splits:                        
+            summary_content = summarize(split)
+            question_content = quiz_from_stub(split)
 
-            for future in as_completed(summary_futures):
-                split = summary_futures[future]
-                try:
-                    summary_content = future.result()
-                    # Assuming 'quiz_from_stub' takes similar time to execute, we get the corresponding future
-                    quiz_content = next(f.quizzes for f in quiz_futures if quiz_futures[f] == split).result()
+            json_string = json.dumps(
+                {
+                    "summary_content": summary_content,
+                    "questions": question_content,
+                    "image": cover_image_url if cover_image_url is not None else "",
+                    "url": url,
+                    "media": media,
+                }
+            )
+            results.append(json_string)
+        print(results)
 
-                    result_dict = {
-                        "summary_content": summary_content,
-                        "questions": quiz_content,
-                        "image": cover_image_url if cover_image_url else "",
-                        "url": url,
-                        "media": media,
-                    }
-                    results.append(json.dumps(result_dict))
-                except Exception as e:  # Catching specific exceptions would be better
-                    return jsonify({"error": "An error occurred while processing split content"}), 500
-                
         end = time.time()
-        print(f"{end - start} s")
+        print(end - start, "s")
 
         return jsonify(results)
 
@@ -426,45 +420,39 @@ def upload_pdf():
             text += page.extract_text() + " "
 
         # Save content to DB
-        save_content(filename, text)
+        save_content(file.filename, text)
         
-        num_tokens = num_tokens_from_string(text, GPT_MODLE)
+        # Calulate number of tokens for the certain model
+        num_tokens = num_tokens_from_string(text, MODEL)
+        print(num_tokens, len(text))
+        
         num_parts = math.ceil(num_tokens / 12000) 
+        
         # Split entire text to same parts
         splits = split_content_evenly(text, num_parts) 
+               
+        results = []
+        for split in splits:                        
+            summary_content = summarize(split)
+            question_content = quiz_from_stub(split)
 
-        # Process the splits using ThreadPoolExecutor for multithreading
-        results = []  # This will store the JSON strings
-        with ThreadPoolExecutor() as executor:
-            # Create a future object for each summary computation
-            summary_futures = [executor.submit(summarize, part) for part in splits]
-            # Create a future object for each quiz computation
-            quiz_futures = [executor.submit(quiz_from_stub, part) for part in splits]
-
-            # Gather completed summaries and quizzes
-            for i in range(len(splits)):
-                summary_result = summary_futures[i].result()
-                quiz_result = quiz_futures[i].result()
-
-                # Construct the result dictionary for each split
-                result_dict = {
-                    "summary_content": summary_result,
-                    "questions": quiz_result,
+            json_string = json.dumps(
+                {
+                    "summary_content": summary_content,
+                    "questions": question_content,
                     "fileName": filename,
                     "media": "PDF",
                 }
-
-                # Serialize the result dictionary to a JSON string
-                json_string = json.dumps(result_dict)
-                results.append(json_string)
+            )
+            results.append(json_string)
+        print(results) 
 
         end = time.time()
+        print(end - start, "s")
 
-        print(f"Processing time: {end - start} seconds")
-
-        # Return the results as a JSON array of strings
         return jsonify(results)
 
+    return jsonify({"error": "Invalid file extension"}), 400
 
 def allowed_file(filename):
     """Function allowed_file"""    
@@ -510,7 +498,7 @@ def generage_quiz():
         prompt = file.read()
         
     response = client.chat.completions.create(
-        model=GPT_MODLE,
+        model=MODEL,
         messages=[
             {"role": "system", "content": prompt},
             {"role": "user", "content": stub},
