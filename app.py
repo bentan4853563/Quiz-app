@@ -5,7 +5,7 @@ import re
 import time
 from datetime import datetime 
 import math
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import PyPDF2
 import requests
 import tiktoken
@@ -371,33 +371,27 @@ def fetch_data_from_url():
                 
         results = []
         with ThreadPoolExecutor() as executor:
-            # Create future objects for each summary and quiz computation
-            summary_futures = {executor.submit(summarize, part): part for part in splits}
-            quiz_futures = {executor.submit(quiz_from_stub, part): part for part in splits}
+            summary_futures = {executor.submit(summarize, split): split for split in splits}
+            quiz_futures = {executor.submit(quiz_from_stub, split): split for split in splits}
 
-            # Process the futures as they complete
-            for split in splits:
-                # Get the result from the future object
-                summary_future = summary_futures[executor.submit(summarize, split)]
-                quiz_future = quiz_futures[executor.submit(quiz_from_stub, split)]
+            for future in as_completed(summary_futures):
+                split = summary_futures[future]
+                try:
+                    summary_content = future.result()
+                    # Assuming 'quiz_from_stub' takes similar time to execute, we get the corresponding future
+                    quiz_content = next(f.quizzes for f in quiz_futures if quiz_futures[f] == split).result()
+
+                    result_dict = {
+                        "summary_content": summary_content,
+                        "questions": quiz_content,
+                        "image": cover_image_url if cover_image_url else "",
+                        "url": url,
+                        "media": media,
+                    }
+                    results.append(json.dumps(result_dict))
+                except Exception as e:  # Catching specific exceptions would be better
+                    return jsonify({"error": "An error occurred while processing split content"}), 500
                 
-                # Obtain results from future objects
-                summary_content = summary_future.result()
-                print("complete summarize")
-                question_content = quiz_future.result()
-                print("complete quizzes")
-
-                result_dict = {
-                    "summary_content": summary_content,
-                    "questions": question_content,
-                    "image": cover_image_url if cover_image_url is not None else "",
-                    "url": url,
-                    "media": media,
-                }
-                results.append(json.dumps(result_dict))
-        print(results)
-
-
         end = time.time()
         print(f"{end - start} s")
 
