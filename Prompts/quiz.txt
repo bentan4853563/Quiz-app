@@ -1,1 +1,0 @@
-Then generate a important question from the given user's message. The question should have 4 answers, with one correct answer. The correct answer should be indicated separately. Additionally, provide a single explanation that will be displayed when a learner selects any of the wrong answers. The explanation should avoid direct references to the user's message.
