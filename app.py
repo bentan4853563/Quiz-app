@@ -71,8 +71,60 @@ def split_content_evenly(content, parts):
         index += part_len
     return splits
 
+# def summarize(text):
+#     """Function summarize"""    
+    
+#     tools = [
+#         {
+#             "type": "function",
+#             "function": {
+#                 "name": "get_title_summary_hashtags",
+#                 "description": "Get title, summary and hash_tags from use's message.",
+#                 "parameters": {
+#                     "type": "object",
+#                     "properties": {
+#                         "title": {
+#                             "type": "string",
+#                             "description": "title",
+#                         },
+#                         "summary": {
+#                             "type": "array",
+#                             "items": {"type": "string"},
+#                             "description": "bulleted summary",
+#                         },
+#                         "hash_tags": {
+#                             "type": "array",
+#                             "items": {"type": "string"},
+#                             "description": "hash tag",
+#                         },
+#                     },
+#                     "required": ["title", "summary", "hash_tags"],
+#                 },
+#             },
+#         }
+#     ]
+#     with open(SUMMARY_PROMPT_FILE_PATH, encoding='utf-8') as file:
+#         prompt = file.read()
+#     print(num_tokens_from_string(text + str(tools) + prompt, "gpt-3.5-turbo"))
+        
+#     response = client.chat.completions.create(
+#         model="gpt-3.5-turbo",
+#         messages=[
+#             {"role": "system", "content": prompt},
+#             {"role": "user", "content": text},
+#         ],
+#         tools=tools,
+#     )
+    
+#     output = []
+#     for res in response.choices[0].message.tool_calls:
+#         output.append(res.function.arguments)
+
+#     return output[0]
+
+
 def summarize(text):
-    """Function summarize"""    
+    """Function summarize with retry logic"""    
     
     tools = [
         {
@@ -103,24 +155,41 @@ def summarize(text):
             },
         }
     ]
-    with open(SUMMARY_PROMPT_FILE_PATH, encoding='utf-8') as file:
-        prompt = file.read()
-    print(num_tokens_from_string(text + str(tools) + prompt, "gpt-3.5-turbo"))
-        
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": prompt},
-            {"role": "user", "content": text},
-        ],
-        tools=tools,
-    )
-    
-    output = []
-    for res in response.choices[0].message.tool_calls:
-        output.append(res.function.arguments)
 
-    return output[0]
+    attempts = 0
+
+    while attempts < MAX_RETRIES:
+        try:
+            with open(SUMMARY_PROMPT_FILE_PATH, encoding='utf-8') as file:
+                prompt = file.read()
+                
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": text},
+                ],
+                tools=tools,
+            )
+            
+            # Check if the response contains the expected output
+            if response.choices[0].message.tool_calls is not None:
+                output = []
+                for res in response.choices[0].message.tool_calls:
+                    output.append(res.function.arguments)
+                return output[0]
+            
+            # If we got a response but tool_calls is None, raise an exception to retry
+            raise ValueError("Received None from tool_calls")
+
+        except (ValueError, AttributeError) as e:
+            attempts += 1
+            print(f"Attempt {attempts} failed (Summarize) with error: {e}. Retrying...")
+            time.sleep(RETRY_DELAY)
+    
+    # If we've exceeded the maximum number of retries, raise an exception
+    raise RuntimeError("Max retries exceeded. Unable to get a valid response.")
+
 
 def quiz_from_stub(text):
     """Function Generate Quizzes"""
@@ -198,7 +267,7 @@ def quiz(text):
 
         except (ValueError, AttributeError) as e:
             attempts += 1
-            print(f"Attempt {attempts} failed with error: {e}. Retrying...")
+            print(f"Attempt {attempts} failed (Quiz) with error: {e}. Retrying...")
             time.sleep(RETRY_DELAY)
 
     # If we've exceeded the maximum number of retries, raise an exception
