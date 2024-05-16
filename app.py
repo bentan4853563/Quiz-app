@@ -1,13 +1,11 @@
 import io
 import json
-import logging
 import os
 import re
 import time
 from datetime import datetime 
 import math
-from logging.handlers import RotatingFileHandler
-
+from concurrent.futures import ThreadPoolExecutor
 import PyPDF2
 import requests
 import tiktoken
@@ -21,17 +19,6 @@ from werkzeug.utils import secure_filename
 from pymongo import MongoClient
 from youtube_transcript_api import YouTubeTranscriptApi
 
-# monkey.patch_all()
-
-ALLOWED_EXTENSIONS = {"pdf"}
-
-SUMMARY_PROMPT_FILE_PATH = 'Prompts/summary.txt'
-QUIZ_PROMPT_FILE_PATH = 'Prompts/quiz.txt'
-STUB_PROMPT_FILE_PATH = 'Prompts/stub.txt'
-
-MAX_RETRIES = 3  
-RETRY_DELAY = 1
-
 load_dotenv()
 
 api_key = os.getenv("OPENAI_API_KEY")
@@ -40,36 +27,18 @@ client = OpenAI(api_key=api_key)
 app = Flask(__name__)
 CORS(app)
 
-mongo_client = MongoClient('mongodb+srv://nicolas1303563:awIKKGrgf4GmVYkV@cluster0.w3yzl84.mongodb.net/')
+ALLOWED_EXTENSIONS = {"pdf"}
+
+SUMMARY_PROMPT_FILE_PATH = 'Prompts/summary.txt'
+QUIZ_PROMPT_FILE_PATH = 'Prompts/quiz.txt'
+STUB_PROMPT_FILE_PATH = 'Prompts/stub.txt'
+
+MAX_RETRIES = 5  
+RETRY_DELAY = 1
+
+mongo_client = MongoClient('mongodb+srv://krish:yXMdTPwSdTRo7qHY@serverlessinstance0.18otqeg.mongodb.net/')
 db = mongo_client['Lurny']
 collection = db['contents']
-
-# Configure the logger
-app.logger.setLevel(logging.INFO)
-
-# Create a RotatingFileHandler to log to a file
-LOG_FILE = 'app.log'
-file_handler = RotatingFileHandler(LOG_FILE, maxBytes=10000, backupCount=5)
-file_handler.setFormatter(logging.Formatter(
-    '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
-app.logger.addHandler(file_handler)
-
-# Log a message to test the logging setup
-app.logger.info('Application startup')
-
-@app.before_request
-def before_request():
-    """Function before_request"""
-    app.logger.info(f"Incoming request: {request.method} {request.url}")
-    # g.openai_client = OpenAI(api_key=api_key)
-
-@app.after_request
-def after_request(response):
-    """Function after_request"""    
-    app.logger.info(f"Outgoing response: {response.status_code}")
-    # if hasattr(g, 'openai_client'):
-        # g.openai_client.close()
-    return response
 
 def get_transcript(video_id):
     """Function get_transcript from youtube video id"""        
@@ -155,16 +124,26 @@ def summarize(text):
     return output[0]
 
 def quiz_from_stub(text):
-    """Function Generate Quizes"""    
-    splits = split_content_evenly(text, 5) 
-    print("quizes", len(splits))
-    quizes = []
-    for split in splits:
-        quiz_object = quiz(split)
-        print("Quiz")
-        quizes.append(quiz_object)
+    """Function Generate Quizzes"""
+    # Assuming split_content_evenly is a function that splits the text into even parts
+    splits = split_content_evenly(text, 5)
+    print("quizzes", len(splits))
     
-    return quizes        
+    def generate_quiz(split):
+        # Assuming quiz is a function that generates a quiz object from a split
+        return quiz(split)
+    
+    quizzes = []
+    # Use ThreadPoolExecutor to execute tasks asynchronously
+    with ThreadPoolExecutor() as executor:
+        # Map the generate_quiz function over the splits
+        future_quizzes = executor.map(generate_quiz, splits)
+        
+        for future_quiz in future_quizzes:
+            print("Quiz")
+            quizzes.append(future_quiz)
+    
+    return quizzes   
 
 def quiz(text):
     """Function Generate Quiz"""
@@ -185,7 +164,7 @@ def quiz(text):
                         "answer": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "available answers",
+                            "description": "answers",
                         },
                         "correctanswer": {
                             "type": "string",
@@ -265,7 +244,6 @@ def fetch_data_from_url():
     try:
         data = request.get_json()
         url = data["url"]
-        app.logger.info(f"Processing URL: {url}")
 
         # Initialize variables for the extracted text and media type
         combined_text = ""
@@ -320,12 +298,15 @@ def fetch_data_from_url():
         save_content(url, combined_text)
         
         num_tokens = num_tokens_from_string(combined_text, "gpt-3.5-turbo")
-        num_parts = math.ceil(num_tokens / 16385) 
+        print("num_tokens", num_tokens)
+        num_parts = math.ceil(num_tokens / 1200) 
         
         splits = split_content_evenly(combined_text, num_parts) 
                 
         results = []
-        for split in splits:                        
+        for split in splits:       
+            print("length of split", len(split))
+                             
             summary_content = summarize(split)
             question_content = quiz_from_stub(split)
 
@@ -347,13 +328,11 @@ def fetch_data_from_url():
         return jsonify(results)
 
     except Exception as e:
-        app.logger.error(f"Error occurred: {e}")
         return jsonify({"error": str(e)}), 500
     
 @app.route("/upload_pdf", methods=["POST"])
 def upload_pdf():
     """Function upload_pdf"""    
-    openai_client = g.openai_client
     # Check if the post request has the file part
     if "file" not in request.files:
         return jsonify({"error": "No file part"}), 400
@@ -506,7 +485,6 @@ def read_prompt_file(file_path):
         with open(file_path, 'r', encoding='utf-8') as file:
             return file.read()
     except Exception as e:
-        app.logger.error(f"Failed to read prompt file {file_path}: {e}")
         return None
           
 def update_prompt_file(file_path, new_prompt):
@@ -516,7 +494,6 @@ def update_prompt_file(file_path, new_prompt):
             file.write(new_prompt)
         return True
     except Exception as e:
-        app.logger.error(f"Failed to update prompt file {file_path}: {e}")
         return False
    
 if __name__ == "__main__":
