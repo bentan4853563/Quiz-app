@@ -63,7 +63,7 @@ def split_content_evenly(content, parts):
         raise ValueError("Number of parts must be greater than zero.")
     
     part_len = len(content) // parts
-    
+    print("part_len", part_len)
     splits = []
     index = 0
     
@@ -299,6 +299,7 @@ def fetch_data_from_url():
         save_content(url, combined_text)
         
         num_tokens = num_tokens_from_string(combined_text, "gpt-3.5-turbo")
+        print(len(num_tokens), len(combined_text))
         num_parts = math.ceil(num_tokens / 16385) 
         
         splits = split_content_evenly(combined_text, num_parts) 
