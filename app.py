@@ -33,7 +33,7 @@ SUMMARY_PROMPT_FILE_PATH = 'Prompts/summary.txt'
 QUIZ_PROMPT_FILE_PATH = 'Prompts/quiz.txt'
 STUB_PROMPT_FILE_PATH = 'Prompts/stub.txt'
 
-MAX_RETRIES = 3  
+MAX_RETRIES = 5  
 RETRY_DELAY = 1
 
 mongo_client = MongoClient('mongodb+srv://krish:yXMdTPwSdTRo7qHY@serverlessinstance0.18otqeg.mongodb.net/')
@@ -127,20 +127,14 @@ def quiz_from_stub(text):
     """Function Generate Quizzes"""
     # Assuming split_content_evenly is a function that splits the text into even parts
     splits = split_content_evenly(text, 5)
-    print("quizzes", len(splits))
-    
-    def generate_quiz(split):
-        # Assuming quiz is a function that generates a quiz object from a split
-        return quiz(split)
     
     quizzes = []
     # Use ThreadPoolExecutor to execute tasks asynchronously
     with ThreadPoolExecutor() as executor:
         # Map the generate_quiz function over the splits
-        future_quizzes = executor.map(generate_quiz, splits)
+        future_quizzes = executor.map(quiz, splits)
         
         for future_quiz in future_quizzes:
-            print("Quiz")
             quizzes.append(future_quiz)
     
     return quizzes   
@@ -177,7 +171,7 @@ def quiz(text):
             },
         }
     ]
-
+    print("token number of split", num_tokens_from_string(text, "gpt-3.5-turbo"))
     attempts = 0
 
     while attempts < MAX_RETRIES:
@@ -300,7 +294,7 @@ def fetch_data_from_url():
         
         num_tokens = num_tokens_from_string(combined_text, "gpt-3.5-turbo")
         print(num_tokens, len(combined_text))
-        num_parts = math.ceil(num_tokens / 12000) 
+        num_parts = math.ceil(num_tokens / 16000) 
         
         splits = split_content_evenly(combined_text, num_parts) 
                 
@@ -505,6 +499,7 @@ if __name__ == "__main__":
         port=5173,
         threaded=True,
         debug=True,
+        use_reloader=False,
         ssl_context=(
             "/etc/letsencrypt/live/lurny.net/cert.pem",
             "/etc/letsencrypt/live/lurny.net/privkey.pem",
