@@ -29,6 +29,7 @@ CORS(app)
 
 ALLOWED_EXTENSIONS = {"pdf"}
 
+GPT_MODLE="gpt-3.5-turbo"
 SUMMARY_PROMPT_FILE_PATH = 'Prompts/summary.txt'
 QUIZ_PROMPT_FILE_PATH = 'Prompts/quiz.txt'
 STUB_PROMPT_FILE_PATH = 'Prompts/stub.txt'
@@ -105,10 +106,10 @@ def split_content_evenly(content, parts):
 #     ]
 #     with open(SUMMARY_PROMPT_FILE_PATH, encoding='utf-8') as file:
 #         prompt = file.read()
-#     print(num_tokens_from_string(text + str(tools) + prompt, "gpt-3.5-turbo"))
+#     print(num_tokens_from_string(text + str(tools) + prompt, GPT_MODLE))
         
 #     response = client.chat.completions.create(
-#         model="gpt-3.5-turbo",
+#         model=GPT_MODLE,
 #         messages=[
 #             {"role": "system", "content": prompt},
 #             {"role": "user", "content": text},
@@ -163,14 +164,14 @@ def summarize(text):
                 prompt = file.read()
                 
             response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=GPT_MODLE,
                 messages=[
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": text},
                 ],
                 tools=tools,
             )
-            print("summary input:", num_tokens_from_string(text), num_tokens_from_string(text + str(tools) + prompt, "gpt-3.5-turbo"))
+            print("summary input:", num_tokens_from_string(text, GPT_MODLE), num_tokens_from_string(text + str(tools) + prompt, GPT_MODLE))
             
             # Check if the response contains the expected output
             if response.choices[0].message.tool_calls is not None:
@@ -246,14 +247,14 @@ def quiz(text):
                 prompt = file.read()
 
             response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=GPT_MODLE,
                 messages=[
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": text},
                 ],
                 tools=tools,
             )
-            print("token number of split", num_tokens_from_string(text, "gpt-3.5-turbo"))
+            print("token number of split", num_tokens_from_string(text, GPT_MODLE))
 
             if response.choices[0].message.tool_calls is not None:
                 output = []
@@ -361,7 +362,7 @@ def fetch_data_from_url():
         save_content(url, combined_text)
         
         # Calulate number of tokens for the certain gpt model
-        num_tokens = num_tokens_from_string(combined_text, "gpt-3.5-turbo")
+        num_tokens = num_tokens_from_string(combined_text, GPT_MODLE)
         print(num_tokens, len(combined_text))
         
         num_parts = math.ceil(num_tokens / 12000) 
@@ -376,7 +377,9 @@ def fetch_data_from_url():
 
             for split in splits:
                 summary_content = summary_futures[executor.submit(summarize, split)].result()
+                print("complete summarize")
                 question_content = quiz_futures[executor.submit(quiz_from_stub, split)].result()
+                print("complete quizes")
 
                 result_dict = {
                     "summary_content": summary_content,
@@ -424,7 +427,7 @@ def upload_pdf():
         # Save content to DB
         save_content(filename, text)
         
-        num_tokens = num_tokens_from_string(text, "gpt-3.5-turbo")
+        num_tokens = num_tokens_from_string(text, GPT_MODLE)
         num_parts = math.ceil(num_tokens / 12000) 
         # Split entire text to same parts
         splits = split_content_evenly(text, num_parts) 
@@ -506,7 +509,7 @@ def generage_quiz():
         prompt = file.read()
         
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model=GPT_MODLE,
         messages=[
             {"role": "system", "content": prompt},
             {"role": "user", "content": stub},
