@@ -170,6 +170,7 @@ def summarize(text):
                 ],
                 tools=tools,
             )
+            print("summary input:", num_tokens_from_string(text + str(tools) + prompt, "gpt-3.5-turbo"))
             
             # Check if the response contains the expected output
             if response.choices[0].message.tool_calls is not None:
@@ -237,7 +238,6 @@ def quiz(text):
             },
         }
     ]
-    print("token number of split", num_tokens_from_string(text, "gpt-3.5-turbo"))
     attempts = 0
 
     while attempts < MAX_RETRIES:
@@ -253,6 +253,7 @@ def quiz(text):
                 ],
                 tools=tools,
             )
+            print("token number of split", num_tokens_from_string(text, "gpt-3.5-turbo"))
 
             if response.choices[0].message.tool_calls is not None:
                 output = []
@@ -265,6 +266,7 @@ def quiz(text):
 
         except (ValueError, AttributeError) as e:
             attempts += 1
+            print(text)
             print(f"Attempt {attempts} failed (Quiz) with error: {e}. Retrying...")
             time.sleep(RETRY_DELAY)
 
@@ -304,7 +306,6 @@ def fetch_data_from_url():
     try:
         data = request.get_json()
         url = data["url"]
-        app.logger.info(f"Processing URL: {url}")
 
         # Initialize variables for the extracted text and media type
         combined_text = ""
