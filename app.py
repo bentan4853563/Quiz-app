@@ -33,7 +33,7 @@ SUMMARY_PROMPT_FILE_PATH = 'Prompts/summary.txt'
 QUIZ_PROMPT_FILE_PATH = 'Prompts/quiz.txt'
 STUB_PROMPT_FILE_PATH = 'Prompts/stub.txt'
 
-MAX_RETRIES = 5  
+MAX_RETRIES = 3  
 RETRY_DELAY = 1
 
 mongo_client = MongoClient('mongodb+srv://krish:yXMdTPwSdTRo7qHY@serverlessinstance0.18otqeg.mongodb.net/')
@@ -244,6 +244,7 @@ def fetch_data_from_url():
     try:
         data = request.get_json()
         url = data["url"]
+        app.logger.info(f"Processing URL: {url}")
 
         # Initialize variables for the extracted text and media type
         combined_text = ""
@@ -298,15 +299,12 @@ def fetch_data_from_url():
         save_content(url, combined_text)
         
         num_tokens = num_tokens_from_string(combined_text, "gpt-3.5-turbo")
-        print("num_tokens", num_tokens)
-        num_parts = math.ceil(num_tokens / 1200) 
+        num_parts = math.ceil(num_tokens / 16385) 
         
         splits = split_content_evenly(combined_text, num_parts) 
                 
         results = []
-        for split in splits:       
-            print("length of split", len(split))
-                             
+        for split in splits:                        
             summary_content = summarize(split)
             question_content = quiz_from_stub(split)
 
@@ -328,11 +326,13 @@ def fetch_data_from_url():
         return jsonify(results)
 
     except Exception as e:
+        app.logger.error(f"Error occurred: {e}")
         return jsonify({"error": str(e)}), 500
     
 @app.route("/upload_pdf", methods=["POST"])
 def upload_pdf():
     """Function upload_pdf"""    
+    openai_client = g.openai_client
     # Check if the post request has the file part
     if "file" not in request.files:
         return jsonify({"error": "No file part"}), 400
@@ -485,6 +485,7 @@ def read_prompt_file(file_path):
         with open(file_path, 'r', encoding='utf-8') as file:
             return file.read()
     except Exception as e:
+        app.logger.error(f"Failed to read prompt file {file_path}: {e}")
         return None
           
 def update_prompt_file(file_path, new_prompt):
@@ -494,6 +495,7 @@ def update_prompt_file(file_path, new_prompt):
             file.write(new_prompt)
         return True
     except Exception as e:
+        app.logger.error(f"Failed to update prompt file {file_path}: {e}")
         return False
    
 if __name__ == "__main__":
