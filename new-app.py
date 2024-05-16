@@ -1,11 +1,13 @@
 import io
 import json
+import logging
 import os
 import re
 import time
 from datetime import datetime 
 import math
-from concurrent.futures import ThreadPoolExecutor
+from logging.handlers import RotatingFileHandler
+
 import PyPDF2
 import requests
 import tiktoken
@@ -19,6 +21,17 @@ from werkzeug.utils import secure_filename
 from pymongo import MongoClient
 from youtube_transcript_api import YouTubeTranscriptApi
 
+# monkey.patch_all()
+
+ALLOWED_EXTENSIONS = {"pdf"}
+
+SUMMARY_PROMPT_FILE_PATH = 'Prompts/summary.txt'
+QUIZ_PROMPT_FILE_PATH = 'Prompts/quiz.txt'
+STUB_PROMPT_FILE_PATH = 'Prompts/stub.txt'
+
+MAX_RETRIES = 3  
+RETRY_DELAY = 1
+
 load_dotenv()
 
 api_key = os.getenv("OPENAI_API_KEY")
@@ -27,18 +40,36 @@ client = OpenAI(api_key=api_key)
 app = Flask(__name__)
 CORS(app)
 
-ALLOWED_EXTENSIONS = {"pdf"}
-
-SUMMARY_PROMPT_FILE_PATH = 'Prompts/summary.txt'
-QUIZ_PROMPT_FILE_PATH = 'Prompts/quiz.txt'
-STUB_PROMPT_FILE_PATH = 'Prompts/stub.txt'
-
-MAX_RETRIES = 5  
-RETRY_DELAY = 1
-
-mongo_client = MongoClient('mongodb+srv://krish:yXMdTPwSdTRo7qHY@serverlessinstance0.18otqeg.mongodb.net/')
+mongo_client = MongoClient('mongodb+srv://nicolas1303563:awIKKGrgf4GmVYkV@cluster0.w3yzl84.mongodb.net/')
 db = mongo_client['Lurny']
 collection = db['contents']
+
+# Configure the logger
+app.logger.setLevel(logging.INFO)
+
+# Create a RotatingFileHandler to log to a file
+LOG_FILE = 'app.log'
+file_handler = RotatingFileHandler(LOG_FILE, maxBytes=10000, backupCount=5)
+file_handler.setFormatter(logging.Formatter(
+    '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
+app.logger.addHandler(file_handler)
+
+# Log a message to test the logging setup
+app.logger.info('Application startup')
+
+@app.before_request
+def before_request():
+    """Function before_request"""
+    app.logger.info(f"Incoming request: {request.method} {request.url}")
+    # g.openai_client = OpenAI(api_key=api_key)
+
+@app.after_request
+def after_request(response):
+    """Function after_request"""    
+    app.logger.info(f"Outgoing response: {response.status_code}")
+    # if hasattr(g, 'openai_client'):
+        # g.openai_client.close()
+    return response
 
 def get_transcript(video_id):
     """Function get_transcript from youtube video id"""        
@@ -63,6 +94,7 @@ def split_content_evenly(content, parts):
         raise ValueError("Number of parts must be greater than zero.")
     
     part_len = len(content) // parts
+    
     splits = []
     index = 0
     
@@ -103,9 +135,9 @@ def summarize(text):
             },
         }
     ]
+    
     with open(SUMMARY_PROMPT_FILE_PATH, encoding='utf-8') as file:
         prompt = file.read()
-    print(num_tokens_from_string(text + str(tools) + prompt, "gpt-3.5-turbo"))
         
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
@@ -123,20 +155,16 @@ def summarize(text):
     return output[0]
 
 def quiz_from_stub(text):
-    """Function Generate Quizzes"""
-    # Assuming split_content_evenly is a function that splits the text into even parts
-    splits = split_content_evenly(text, 5)
+    """Function Generate Quizes"""    
+    splits = split_content_evenly(text, 5) 
+    print("quizes", len(splits))
+    quizes = []
+    for split in splits:
+        print("token number of split", num_tokens_from_string(split, "gpt-3.5-turbo"))
+        quiz_object = quiz(split)
+        quizes.append(quiz_object)
     
-    quizzes = []
-    # Use ThreadPoolExecutor to execute tasks asynchronously
-    with ThreadPoolExecutor() as executor:
-        # Map the generate_quiz function over the splits
-        future_quizzes = executor.map(quiz, splits)
-        
-        for future_quiz in future_quizzes:
-            quizzes.append(future_quiz)
-    
-    return quizzes   
+    return quizes        
 
 def quiz(text):
     """Function Generate Quiz"""
@@ -157,7 +185,7 @@ def quiz(text):
                         "answer": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "answers",
+                            "description": "available answers",
                         },
                         "correctanswer": {
                             "type": "string",
@@ -170,7 +198,7 @@ def quiz(text):
             },
         }
     ]
-    print("token number of split", num_tokens_from_string(text, "gpt-3.5-turbo"))
+
     attempts = 0
 
     while attempts < MAX_RETRIES:
@@ -199,6 +227,7 @@ def quiz(text):
         except (ValueError, AttributeError) as e:
             attempts += 1
             print(f"Attempt {attempts} failed with error: {e}. Retrying...")
+            print(text)
             time.sleep(RETRY_DELAY)
 
     # If we've exceeded the maximum number of retries, raise an exception
@@ -292,15 +321,17 @@ def fetch_data_from_url():
         save_content(url, combined_text)
         
         num_tokens = num_tokens_from_string(combined_text, "gpt-3.5-turbo")
-        print(num_tokens, len(combined_text))
-        num_parts = math.ceil(num_tokens / 12000) 
+        print("total tokens", num_tokens)
+        num_parts = math.ceil(num_tokens / 16000) 
         
         splits = split_content_evenly(combined_text, num_parts) 
                 
         results = []
         for split in splits:                        
             summary_content = summarize(split)
+            print("Summary")
             question_content = quiz_from_stub(split)
+            print("Quizes")
 
             json_string = json.dumps(
                 {
@@ -377,7 +408,7 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route("/get_quiz", methods=["POST"])
-def generage_quiz():
+def generage_quiz_from_stub():
     """Function analyze"""    
     data = request.get_json()
     stub = data["stub"]
@@ -414,6 +445,7 @@ def generage_quiz():
     
     with open(STUB_PROMPT_FILE_PATH, encoding='utf-8') as file:
         prompt = file.read()
+        print(prompt)
         
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
@@ -435,8 +467,6 @@ def update_prompts():
     """Endpoint to update prompt files based on JSON input"""
     data = request.get_json()
     
-    print(data)
-    
     summary_prompt = data.get('summary')
     quiz_prompt = data.get('quiz')
     stub_prompt = data.get('stub')
@@ -453,7 +483,6 @@ def update_prompts():
     
     return jsonify({"message": "Prompts updated successfully"}), 200
 
-@app.route("/get_prompts", methods=["GET"])
 def get_prompts():
     """Endpoint to get the current prompts"""
     summary_prompt = read_prompt_file(SUMMARY_PROMPT_FILE_PATH)
@@ -491,16 +520,16 @@ def update_prompt_file(file_path, new_prompt):
     except Exception as e:
         app.logger.error(f"Failed to update prompt file {file_path}: {e}")
         return False
-   
+    
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
-        port=5173,
+        port=5111,
         threaded=True,
         debug=True,
-        use_reloader=False,
-        ssl_context=(
-            "/etc/letsencrypt/live/lurny.net/cert.pem",
-            "/etc/letsencrypt/live/lurny.net/privkey.pem",
-        ),
+        use_reloader=False
+        # ssl_context=(
+        #     "/etc/letsencrypt/live/lurny.net/cert.pem",
+        #     "/etc/letsencrypt/live/lurny.net/privkey.pem",
+        # ),
     )
