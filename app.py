@@ -122,7 +122,6 @@ def split_content_evenly(content, parts):
 
 #     return output[0]
 
-
 def summarize(text):
     """Function summarize with retry logic"""    
     
@@ -189,7 +188,6 @@ def summarize(text):
     
     # If we've exceeded the maximum number of retries, raise an exception
     raise RuntimeError("Max retries exceeded. Unable to get a valid response.")
-
 
 def quiz_from_stub(text):
     """Function Generate Quizzes"""
@@ -358,44 +356,49 @@ def fetch_data_from_url():
             ]
             combined_text = "".join(text_elements).strip()
         
+        # Save content to DB
         save_content(url, combined_text)
         
+        # Calulate number of tokens for the certain gpt model
         num_tokens = num_tokens_from_string(combined_text, "gpt-3.5-turbo")
         print(num_tokens, len(combined_text))
-        num_parts = math.ceil(num_tokens / 12000) 
         
+        num_parts = math.ceil(num_tokens / 12000) 
+        # Split entire content to several same parts when content is large than gpt token limit
         splits = split_content_evenly(combined_text, num_parts) 
                 
         results = []
-        for split in splits:                        
-            summary_content = summarize(split)
-            question_content = quiz_from_stub(split)
+        with ThreadPoolExecutor() as executor:
+            # Create future objects for each summary and quiz computation
+            summary_futures = {executor.submit(summarize, part): part for part in splits}
+            quiz_futures = {executor.submit(quiz_from_stub, part): part for part in splits}
 
-            json_string = json.dumps(
-                {
+            for split in splits:
+                summary_content = summary_futures[executor.submit(summarize, split)].result()
+                question_content = quiz_futures[executor.submit(quiz_from_stub, split)].result()
+
+                result_dict = {
                     "summary_content": summary_content,
                     "questions": question_content,
                     "image": cover_image_url if cover_image_url is not None else "",
                     "url": url,
                     "media": media,
                 }
-            )
-            results.append(json_string)
+                results.append(json.dumps(result_dict))
         print(results)
 
         end = time.time()
-        print(end - start, "s")
+        print(f"{end - start} s")
 
         return jsonify(results)
 
     except Exception as e:
-        app.logger.error(f"Error occurred: {e}")
         return jsonify({"error": str(e)}), 500
     
 @app.route("/upload_pdf", methods=["POST"])
 def upload_pdf():
     """Function upload_pdf"""    
-    openai_client = g.openai_client
+    
     # Check if the post request has the file part
     if "file" not in request.files:
         return jsonify({"error": "No file part"}), 400
@@ -412,34 +415,51 @@ def upload_pdf():
         filename = secure_filename(file.filename)
 
         # Read the PDF content
-        pdf_reader = PyPDF2.PdfReader(io.BytesIO(file.read()()))
+        pdf_reader = PyPDF2.PdfReader(io.BytesIO(file.read()))
         text = ""
         for page in pdf_reader.pages:
             text += page.extract_text() + " "
 
-        # Do something with the extracted text
-        # For example, returning it
+        # Save content to DB
+        save_content(filename, text)
+        
+        num_tokens = num_tokens_from_string(text, "gpt-3.5-turbo")
+        num_parts = math.ceil(num_tokens / 12000) 
+        # Split entire text to same parts
+        splits = split_content_evenly(text, num_parts) 
 
-        summary_content = summarize(text)
-        question_content = quiz_from_stub(text)
+        # Process the splits using ThreadPoolExecutor for multithreading
+        results = []  # This will store the JSON strings
+        with ThreadPoolExecutor() as executor:
+            # Create a future object for each summary computation
+            summary_futures = [executor.submit(summarize, part) for part in splits]
+            # Create a future object for each quiz computation
+            quiz_futures = [executor.submit(quiz_from_stub, part) for part in splits]
 
-        print(summary_content, question_content)
+            # Gather completed summaries and quizzes
+            for i in range(len(splits)):
+                summary_result = summary_futures[i].result()
+                quiz_result = quiz_futures[i].result()
 
-        json_string = json.dumps(
-            {
-                "summary_content": summary_content,
-                "questions": question_content,
-                "fileName": filename,
-                "media": "PDF",
-            }
-        )
+                # Construct the result dictionary for each split
+                result_dict = {
+                    "summary_content": summary_result,
+                    "questions": quiz_result,
+                    "fileName": filename,
+                    "media": "PDF",
+                }
+
+                # Serialize the result dictionary to a JSON string
+                json_string = json.dumps(result_dict)
+                results.append(json_string)
 
         end = time.time()
-        print(end - start, "s")
 
-        return json_string
+        print(f"Processing time: {end - start} seconds")
 
-    return jsonify({"error": "Invalid file extension"}), 400
+        # Return the results as a JSON array of strings
+        return jsonify(results)
+
 
 def allowed_file(filename):
     """Function allowed_file"""    
