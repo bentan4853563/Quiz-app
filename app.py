@@ -375,11 +375,17 @@ def fetch_data_from_url():
             summary_futures = {executor.submit(summarize, part): part for part in splits}
             quiz_futures = {executor.submit(quiz_from_stub, part): part for part in splits}
 
+            # Process the futures as they complete
             for split in splits:
-                summary_content = summary_futures[executor.submit(summarize, split)].result()
+                # Get the result from the future object
+                summary_future = summary_futures[executor.submit(summarize, split)]
+                quiz_future = quiz_futures[executor.submit(quiz_from_stub, split)]
+                
+                # Obtain results from future objects
+                summary_content = summary_future.result()
                 print("complete summarize")
-                question_content = quiz_futures[executor.submit(quiz_from_stub, split)].result()
-                print("complete quizes")
+                question_content = quiz_future.result()
+                print("complete quizzes")
 
                 result_dict = {
                     "summary_content": summary_content,
@@ -390,6 +396,7 @@ def fetch_data_from_url():
                 }
                 results.append(json.dumps(result_dict))
         print(results)
+
 
         end = time.time()
         print(f"{end - start} s")
