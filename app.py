@@ -170,7 +170,7 @@ def summarize(text):
                 ],
                 tools=tools,
             )
-            print("summary input:", num_tokens_from_string(text + str(tools) + prompt, "gpt-3.5-turbo"))
+            print("summary input:", num_tokens_from_string(text), num_tokens_from_string(text + str(tools) + prompt, "gpt-3.5-turbo"))
             
             # Check if the response contains the expected output
             if response.choices[0].message.tool_calls is not None:
