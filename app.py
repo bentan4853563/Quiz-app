@@ -391,7 +391,7 @@ def lurnify_from_url():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/lurnify-from-file', methods=['POST'])
-def upload_file():
+def lurnify_from_file():
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
     file = request.files['file']
@@ -399,9 +399,8 @@ def upload_file():
         return jsonify({'error': 'No selected file'}), 400
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(file_path)
-        text = process_file(file_path, filename.rsplit('.', 1)[1].lower())
+
+        text = process_file(file, filename.rsplit('.', 1)[1].lower())
 
         start = time.time()
 
