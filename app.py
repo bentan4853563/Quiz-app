@@ -321,7 +321,7 @@ def lurnify_from_url():
                 video_id = video_id_match.group(1)
                 try:
                     # Get the transcript from the YouTube video
-                    transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+                    transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['en', 'hi'])
                     combined_text = "".join(entry["text"] for entry in transcript_list)
                     print("Video script", combined_text)
                 except Exception as e:
