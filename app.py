@@ -188,7 +188,6 @@ def quiz(text):
             },
         }
     ]
-    print("token number of split", num_tokens_from_string(text, MODEL))
     attempts = 0
 
     while attempts < MAX_RETRIES:
@@ -204,6 +203,7 @@ def quiz(text):
                 ],
                 tools=tools,
             )
+            print("token number of split", num_tokens_from_string(text, MODEL))
 
             if response.choices[0].message.tool_calls is not None:
                 output = []
