@@ -300,9 +300,58 @@ def save_content(url, content):
   }
   collection.insert_one(document)
 
-@app.route("/fetch", methods=["POST"])
-def fetch_data_from_url():
+@app.route("/manually", methods=["POST"])
+def lurnify_from_content():
     """Function fetch_data_from_url"""       
+    try:
+        data = request.get_json()
+        combined_text = data["content"]
+
+        media = None
+        url = None
+        cover_image_url = None
+
+        start = time.time()
+
+        # Save content to DB
+        save_content(None, combined_text)
+        
+        # Calulate number of tokens for the certain gpt model
+        num_tokens = num_tokens_from_string(combined_text, MODEL)
+        print(num_tokens, len(combined_text))
+        
+        num_parts = math.ceil(num_tokens / 12000) 
+        # Split entire content to several same parts when content is large than gpt token limit
+        splits = split_content_evenly(combined_text, num_parts) 
+                
+        results = []
+        for split in splits:                        
+            summary_content = summarize(split)
+            question_content = quiz_from_stub(split)
+
+            json_string = json.dumps(
+                {
+                    "summary_content": summary_content,
+                    "questions": question_content,
+                    "image": cover_image_url if cover_image_url is not None else "",
+                    "url": url,
+                    "media": media,
+                }
+            )
+            results.append(json_string)
+        print(results)
+
+        end = time.time()
+        print(end - start, "s")
+
+        return jsonify(results)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+ 
+@app.route("/fetch", methods=["POST"])
+def lurnify_from_url():
+    """Function lurnify_from_url"""       
     try:
         data = request.get_json()
         url = data["url"]
