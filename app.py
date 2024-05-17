@@ -453,19 +453,15 @@ def process_file(path, filetype):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-def extract_text_from_pdf(path):
-    pdf_reader = PyPDF2.PdfReader(io.BytesIO(path.read()))
-    text = ""
-    for page in pdf_reader.pages:
-        text += page.extract_text() + " "
-    print("==>", text)
+def extract_text_from_pdf(filepath):
+    # Opening the PDF file in binary read mode
+    with open(filepath, 'rb') as file:
+        pdf_reader = PyPDF2.PdfReader(file)
+        text = ""
+        for page in pdf_reader.pages:
+            text += page.extract_text() + " "
+        print("text==>", text)
     return text
-
-    # with open(path, 'rb') as file:
-    #     reader = PyPDF2.PdfFileReader(file)
-    #     text = ''
-    #     for page_num in range(reader.numPages):
-    #         text += reader.getPage(page_num).extractText()
 
 def extract_text_from_ppt(path):
     prs = Presentation(path)
