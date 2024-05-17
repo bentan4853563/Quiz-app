@@ -403,7 +403,7 @@ def lurnify_from_file():
         file_path = os.path.join("uploads", filename)
         file.save(file_path)
         text = process_file(file_path, filename.rsplit('.', 1)[1].lower())
-
+        print("text", text)
         start = time.time()
 
         # Save content to DB
