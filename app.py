@@ -400,7 +400,7 @@ def lurnify_from_file():
         return jsonify({'error': 'No selected file'}), 400
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
-        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        file_path = os.path.join("uploads", filename)
         file.save(file_path)
         text = process_file(file_path, filename.rsplit('.', 1)[1].lower())
 
