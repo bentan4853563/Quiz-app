@@ -407,7 +407,7 @@ def lurnify_from_file():
         start = time.time()
 
         # Save content to DB
-        save_content(None, text)
+        # save_content(None, text)
         
         # Calulate number of tokens for the certain gpt model
         num_tokens = num_tokens_from_string(text, MODEL)
