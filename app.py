@@ -30,6 +30,7 @@ app = Flask(__name__)
 CORS(app)
 
 MODEL = "gpt-3.5-turbo"
+UPLOAD_FOLDER = "uploads"
 
 SUMMARY_PROMPT_FILE_PATH = 'Prompts/summary.txt'
 QUIZ_PROMPT_FILE_PATH = 'Prompts/quiz.txt'
@@ -399,8 +400,9 @@ def lurnify_from_file():
         return jsonify({'error': 'No selected file'}), 400
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
-
-        text = process_file(file, filename.rsplit('.', 1)[1].lower())
+        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(file_path)
+        text = process_file(file_path, filename.rsplit('.', 1)[1].lower())
 
         start = time.time()
 
