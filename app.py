@@ -111,7 +111,7 @@ def summarize(text):
         try:
             with open(SUMMARY_PROMPT_FILE_PATH, encoding='utf-8') as file:
                 prompt = file.read()
-            print("input token", num_tokens_from_string(text + prompt + str(tools), MODEL))
+            print("input token", num_tokens_from_string(prompt + str(tools), MODEL))
             response = client.chat.completions.create(
                 model=MODEL,
                 messages=[
@@ -268,7 +268,7 @@ def lurnify_from_content():
         num_tokens = num_tokens_from_string(combined_text, MODEL)
         print(num_tokens, len(combined_text))
         
-        num_parts = math.ceil(num_tokens / 12000) 
+        num_parts = math.ceil(num_tokens / 15000) 
         # Split entire content to several same parts when content is large than gpt token limit
         splits = split_content_evenly(combined_text, num_parts) 
                 
@@ -361,7 +361,7 @@ def lurnify_from_url():
         num_tokens = num_tokens_from_string(combined_text, MODEL)
         print(num_tokens, len(combined_text))
         
-        num_parts = math.ceil(num_tokens / 12000) 
+        num_parts = math.ceil(num_tokens / 15000) 
         # Split entire content to several same parts when content is large than gpt token limit
         splits = split_content_evenly(combined_text, num_parts) 
                 
@@ -412,7 +412,7 @@ def upload_file():
         num_tokens = num_tokens_from_string(text, MODEL)
         print(num_tokens, len(text))
         
-        num_parts = math.ceil(num_tokens / 12000) 
+        num_parts = math.ceil(num_tokens / 15000) 
         # Split entire content to several same parts when content is large than gpt token limit
         splits = split_content_evenly(text, num_parts) 
                 
