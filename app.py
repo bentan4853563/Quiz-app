@@ -9,6 +9,8 @@ from concurrent.futures import ThreadPoolExecutor
 import PyPDF2
 import requests
 import tiktoken
+from pptx import Presentation
+from docx import Document
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request, g
@@ -26,8 +28,6 @@ client = OpenAI(api_key=api_key)
 
 app = Flask(__name__)
 CORS(app)
-
-ALLOWED_EXTENSIONS = {"pdf"}
 
 MODEL = "gpt-3.5-turbo"
 
@@ -51,7 +51,6 @@ def is_youtube_url(url):
     
     return "youtube.com" in url or "youtu.be" in url
 
-
 def num_tokens_from_string(string: str, encoding_name: str) -> int:
     """Function get number of tokens"""
     encoding = tiktoken.encoding_for_model(encoding_name)
@@ -72,57 +71,6 @@ def split_content_evenly(content, parts):
         splits.append(content[index: index + part_len])
         index += part_len
     return splits
-
-# def summarize(text):
-#     """Function summarize"""    
-    
-#     tools = [
-#         {
-#             "type": "function",
-#             "function": {
-#                 "name": "get_title_summary_hashtags",
-#                 "description": "Get title, summary and hash_tags from use's message.",
-#                 "parameters": {
-#                     "type": "object",
-#                     "properties": {
-#                         "title": {
-#                             "type": "string",
-#                             "description": "title",
-#                         },
-#                         "summary": {
-#                             "type": "array",
-#                             "items": {"type": "string"},
-#                             "description": "bulleted summary",
-#                         },
-#                         "hash_tags": {
-#                             "type": "array",
-#                             "items": {"type": "string"},
-#                             "description": "hash tag",
-#                         },
-#                     },
-#                     "required": ["title", "summary", "hash_tags"],
-#                 },
-#             },
-#         }
-#     ]
-#     with open(SUMMARY_PROMPT_FILE_PATH, encoding='utf-8') as file:
-#         prompt = file.read()
-#     print(num_tokens_from_string(text + str(tools) + prompt, MODEL))
-        
-#     response = client.chat.completions.create(
-#         model=MODEL,
-#         messages=[
-#             {"role": "system", "content": prompt},
-#             {"role": "user", "content": text},
-#         ],
-#         tools=tools,
-#     )
-    
-#     output = []
-#     for res in response.choices[0].message.tool_calls:
-#         output.append(res.function.arguments)
-
-#     return output[0]
 
 def summarize(text):
     """Function summarize with retry logic"""    
@@ -355,7 +303,6 @@ def lurnify_from_url():
     try:
         data = request.get_json()
         url = data["url"]
-        app.logger.info(f"Processing URL: {url}")
 
         # Initialize variables for the extracted text and media type
         combined_text = ""
@@ -442,44 +389,33 @@ def lurnify_from_url():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
-@app.route("/upload_pdf", methods=["POST"])
-def upload_pdf():
-    """Function upload_pdf"""    
-    
-    # Check if the post request has the file part
-    if "file" not in request.files:
-        return jsonify({"error": "No file part"}), 400
 
-    file = request.files["file"]
-
-    # If user does not select file or submits an empty part without filename
-    if file.filename == "":
-        return jsonify({"error": "No selected file"}), 400
-
+@app.route('/lurnify-from-file', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
     if file and allowed_file(file.filename):
-        # Secure the filename
-        start = time.time()
         filename = secure_filename(file.filename)
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(file_path)
+        text = process_file(file_path, filename.rsplit('.', 1)[1].lower())
 
-        # Read the PDF content
-        pdf_reader = PyPDF2.PdfReader(io.BytesIO(file.read()))
-        text = ""
-        for page in pdf_reader.pages:
-            text += page.extract_text() + " "
+        start = time.time()
 
         # Save content to DB
-        save_content(file.filename, text)
+        save_content(None, text)
         
-        # Calulate number of tokens for the certain model
+        # Calulate number of tokens for the certain gpt model
         num_tokens = num_tokens_from_string(text, MODEL)
         print(num_tokens, len(text))
         
         num_parts = math.ceil(num_tokens / 12000) 
-        
-        # Split entire text to same parts
+        # Split entire content to several same parts when content is large than gpt token limit
         splits = split_content_evenly(text, num_parts) 
-               
+                
         results = []
         for split in splits:                        
             summary_content = summarize(split)
@@ -489,23 +425,54 @@ def upload_pdf():
                 {
                     "summary_content": summary_content,
                     "questions": question_content,
-                    "fileName": filename,
-                    "media": "PDF",
+                    "image": None,
+                    "url": filename,
+                    "media": "file",
                 }
             )
             results.append(json_string)
-        print(results) 
+        print(results)
 
         end = time.time()
         print(end - start, "s")
 
         return jsonify(results)
+ 
+    else:
+        return jsonify({'error': 'File type not allowed'}), 400
 
-    return jsonify({"error": "Invalid file extension"}), 400
+def process_file(path, filetype):
+    try:
+        if filetype == 'pdf':
+            return extract_text_from_pdf(path)
+        elif filetype == 'pptx':
+            return extract_text_from_ppt(path)
+        elif filetype == 'docx':
+            return extract_text_from_doc(path)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-def allowed_file(filename):
-    """Function allowed_file"""    
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+def extract_text_from_pdf(path):
+    with open(path, 'rb') as file:
+        reader = PyPDF2.PdfFileReader(file)
+        text = ''
+        for page_num in range(reader.numPages):
+            text += reader.getPage(page_num).extractText()
+        return text
+
+def extract_text_from_ppt(path):
+    prs = Presentation(path)
+    text = ''
+    for slide in prs.slides:
+        for shape in slide.shapes:
+            if hasattr(shape, "text"):
+                text += shape.text + '\n'
+    return text
+
+def extract_text_from_doc(path):
+    doc = Document(path)
+    text = '\n'.join([para.text for para in doc.paragraphs])
+    return text
 
 @app.route("/get_quiz", methods=["POST"])
 def generage_quiz():
@@ -566,8 +533,6 @@ def update_prompts():
     """Endpoint to update prompt files based on JSON input"""
     data = request.get_json()
     
-    print(data)
-    
     summary_prompt = data.get('summary')
     quiz_prompt = data.get('quiz')
     stub_prompt = data.get('stub')
@@ -610,7 +575,6 @@ def read_prompt_file(file_path):
         with open(file_path, 'r', encoding='utf-8') as file:
             return file.read()
     except Exception as e:
-        app.logger.error(f"Failed to read prompt file {file_path}: {e}")
         return None
           
 def update_prompt_file(file_path, new_prompt):
@@ -620,9 +584,13 @@ def update_prompt_file(file_path, new_prompt):
             file.write(new_prompt)
         return True
     except Exception as e:
-        app.logger.error(f"Failed to update prompt file {file_path}: {e}")
         return False
-   
+
+def allowed_file(filename):
+    ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
