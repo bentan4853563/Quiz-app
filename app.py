@@ -468,6 +468,7 @@ def extract_text_from_ppt(path):
         for shape in slide.shapes:
             if hasattr(shape, "text"):
                 text += shape.text + '\n'
+    print("==>>", text)
     return text
 
 def extract_text_from_doc(path):
