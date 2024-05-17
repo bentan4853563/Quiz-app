@@ -448,6 +448,8 @@ def process_file(path, filetype):
             return extract_text_from_pdf(path)
         elif filetype == 'pptx':
             return extract_text_from_ppt(path)
+        elif filetype == 'txt':
+            return extract_text_from_txt(path) 
         elif filetype == 'docx':
             return extract_text_from_doc(path)
     except Exception as e:
@@ -460,7 +462,11 @@ def extract_text_from_pdf(filepath):
         text = ""
         for page in pdf_reader.pages:
             text += page.extract_text() + " "
-        print("text==>", text)
+    return text
+
+def extract_text_from_txt(filepath):
+    with open(filepath, 'r', encoding='utf-8') as file:
+        text = file.read()
     return text
 
 def extract_text_from_ppt(path):
@@ -590,7 +596,7 @@ def update_prompt_file(file_path, new_prompt):
         return False
 
 def allowed_file(filename):
-    ALLOWED_EXTENSIONS = {'txt', 'pdf', 'docx', 'pptx'}
+    ALLOWED_EXTENSIONS = {'txt', 'pdf', 'docx', 'pptx', 'txt'}
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
