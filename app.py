@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request, g
 from flask_cors import CORS
-# from gevent import monkey
+from gevent import monkey
 from openai import OpenAI
 from werkzeug.utils import secure_filename
 from pymongo import MongoClient
@@ -588,7 +588,7 @@ def update_prompt_file(file_path, new_prompt):
         return False
 
 def allowed_file(filename):
-    ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+    ALLOWED_EXTENSIONS = {'txt', 'pdf', 'docx', 'pptx'}
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
