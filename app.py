@@ -111,7 +111,7 @@ def summarize(text):
         try:
             with open(SUMMARY_PROMPT_FILE_PATH, encoding='utf-8') as file:
                 prompt = file.read()
-                
+            print("input token", num_tokens_from_string(text + prompt + tools.tostring(), MODEL))
             response = client.chat.completions.create(
                 model=MODEL,
                 messages=[
