@@ -454,12 +454,18 @@ def process_file(path, filetype):
         return jsonify({'error': str(e)}), 500
 
 def extract_text_from_pdf(path):
-    with open(path, 'rb') as file:
-        reader = PyPDF2.PdfFileReader(file)
-        text = ''
-        for page_num in range(reader.numPages):
-            text += reader.getPage(page_num).extractText()
-        return text
+    pdf_reader = PyPDF2.PdfReader(io.BytesIO(path.read()))
+    text = ""
+    for page in pdf_reader.pages:
+        text += page.extract_text() + " "
+    print("==>", text)
+    return text
+
+    # with open(path, 'rb') as file:
+    #     reader = PyPDF2.PdfFileReader(file)
+    #     text = ''
+    #     for page_num in range(reader.numPages):
+    #         text += reader.getPage(page_num).extractText()
 
 def extract_text_from_ppt(path):
     prs = Presentation(path)
@@ -468,7 +474,6 @@ def extract_text_from_ppt(path):
         for shape in slide.shapes:
             if hasattr(shape, "text"):
                 text += shape.text + '\n'
-    print("==>>", text)
     return text
 
 def extract_text_from_doc(path):
