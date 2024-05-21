@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request, g
 from flask_cors import CORS
-from gevent import monkey
+# from gevent import monkey
 from openai import OpenAI
 from werkzeug.utils import secure_filename
 from pymongo import MongoClient
@@ -311,9 +311,10 @@ def lurnify_from_url():
         cover_image_url = None
 
         start = time.time()
-
+        print("=>url", url)
         # openai_client = g.openai_client
         # Extract text from the URL
+        print("is_youtube_url", is_youtube_url(url))
         if is_youtube_url(url):
             # Extract video ID from the YouTube URL
             video_id_match = re.search(r"(?:v=|\/)([0-9A-Za-z_-]{11})", url)
@@ -323,7 +324,6 @@ def lurnify_from_url():
                     # Get the transcript from the YouTube video
                     transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['en', 'hi'])
                     combined_text = "".join(entry["text"] for entry in transcript_list)
-                    print("Video script", combined_text)
                 except Exception as e:
                     return jsonify({"error": str(e)}), 400
             else:
@@ -347,13 +347,14 @@ def lurnify_from_url():
             page = requests.get(url)
 
             soup = BeautifulSoup(page.content, "html.parser")
-
+            print("media", soup, media)
             cover_image_url = extract_cover_image(url)
 
             text_elements = [
                 tag.get_text() for tag in soup.find_all(["p", "span", "a", "li"])
             ]
-            combined_text = "".join(text_elements).strip()
+            combined_text = " ".join(text_elements)
+        print("combined_text", combined_text)
         
         # Save content to DB
         save_content(url, combined_text)
@@ -603,7 +604,7 @@ def allowed_file(filename):
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
-        port=5173,
+        port=5111,
         threaded=True,
         debug=True,
         use_reloader=False,
