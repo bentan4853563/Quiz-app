@@ -254,7 +254,7 @@ def lurnify_from_content():
     """Function fetch_data_from_url"""       
     try:
         data = request.get_json()
-        combined_text = data["content"].encode('utf-8')
+        combined_text = data["content"]
 
         media = None
         url = None
