@@ -12,9 +12,6 @@ import tiktoken
 from pptx import Presentation
 from docx import Document
 from bs4 import BeautifulSoup
-# from selenium import webdriver
-# from selenium.webdriver.chrome.service import Service
-# from webdriver_manager.chrome import ChromeDriverManager
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request, g
 from flask_cors import CORS
@@ -252,38 +249,12 @@ def save_content(url, content):
   }
   collection.insert_one(document)
 
-# def extract_text_with_selenium(url):
-#     # Initialize Selenium WebDriver
-#     options = webdriver.ChromeOptions()
-#     options.add_argument('--headless')
-#     options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3')
-
-#     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-    
-#     # Navigate to the URL
-#     driver.get(url)
-    
-#     # Get the page source
-#     html_content = driver.page_source
-#     soup = BeautifulSoup(html_content, 'html.parser')
-    
-#     # Extract all text elements
-#     text_elements = [tag.get_text(separator=' ', strip=True) for tag in soup.find_all(['p', 'span', 'a', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])]
-    
-#     # Combine all text elements into one string
-#     combined_text = "\n".join(text_elements)
-    
-#     # Clean up: close the browser window
-#     driver.quit()
-    
-#     return combined_text
-
 @app.route("/manually", methods=["POST"])
 def lurnify_from_content():
     """Function fetch_data_from_url"""       
     try:
         data = request.get_json()
-        combined_text = data["content"].encode('utf-8')
+        combined_text = data["content"]
 
         media = None
         url = None
@@ -353,10 +324,12 @@ def lurnify_from_url():
                     # Get the transcript from the YouTube video
                     transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['en', 'hi'])
                     combined_text = "".join(entry["text"] for entry in transcript_list)
+                    print("Video script", combined_text)
                 except Exception as e:
                     return jsonify({"error": str(e)}), 400
             else:
                 return jsonify({"error": "No YouTube video ID found in URL"}), 400
+
         elif url.lower().endswith(".pdf"):
             media = "PDF"
             try:
@@ -372,16 +345,16 @@ def lurnify_from_url():
                 return jsonify({"error": str(e)}), 400
         else:
             media = "web"
-
             page = requests.get(url)
 
             soup = BeautifulSoup(page.content, "html.parser")
+            print("media", soup, media)
             cover_image_url = extract_cover_image(url)
 
             text_elements = [
                 tag.get_text() for tag in soup.find_all(["p", "span", "a", "li"])
             ]
-            combined_text = "\n ".join(text_elements)
+            combined_text = ", ".join(text_elements)
         print("combined_text", combined_text)
         
         # Save content to DB
@@ -395,27 +368,27 @@ def lurnify_from_url():
         # Split entire content to several same parts when content is large than gpt token limit
         splits = split_content_evenly(combined_text, num_parts) 
                 
-        # results = []
-        # for split in splits:                        
-        #     summary_content = summarize(split)
-        #     question_content = quiz_from_stub(split)
+        results = []
+        for split in splits:                        
+            summary_content = summarize(split)
+            question_content = quiz_from_stub(split)
 
-        #     json_string = json.dumps(
-        #         {
-        #             "summary_content": summary_content,
-        #             "questions": question_content,
-        #             "image": cover_image_url if cover_image_url is not None else "",
-        #             "url": url,
-        #             "media": media,
-        #         }
-        #     )
-        #     results.append(json_string)
-        # print(results)
+            json_string = json.dumps(
+                {
+                    "summary_content": summary_content,
+                    "questions": question_content,
+                    "image": cover_image_url if cover_image_url is not None else "",
+                    "url": url,
+                    "media": media,
+                }
+            )
+            results.append(json_string)
+        print(results)
 
-        # end = time.time()
-        # print(end - start, "s")
+        end = time.time()
+        print(end - start, "s")
 
-        return jsonify(splits)
+        return jsonify(results)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
