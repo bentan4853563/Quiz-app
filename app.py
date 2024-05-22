@@ -12,13 +12,13 @@ import tiktoken
 from pptx import Presentation
 from docx import Document
 from bs4 import BeautifulSoup
-from selenium import webdriver
+# from selenium import webdriver
 # from selenium.webdriver.chrome.service import Service
 # from webdriver_manager.chrome import ChromeDriverManager
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request, g
 from flask_cors import CORS
-# from gevent import monkey
+from gevent import monkey
 from openai import OpenAI
 from werkzeug.utils import secure_filename
 from pymongo import MongoClient
@@ -636,8 +636,8 @@ if __name__ == "__main__":
         threaded=True,
         debug=True,
         use_reloader=False,
-        # ssl_context=(
-        #     "/etc/letsencrypt/live/lurny.net/cert.pem",
-        #     "/etc/letsencrypt/live/lurny.net/privkey.pem",
-        # ),
+        ssl_context=(
+            "/etc/letsencrypt/live/lurny.net/cert.pem",
+            "/etc/letsencrypt/live/lurny.net/privkey.pem",
+        ),
     )
