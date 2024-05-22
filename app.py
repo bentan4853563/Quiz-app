@@ -13,8 +13,8 @@ from pptx import Presentation
 from docx import Document
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
+# from selenium.webdriver.chrome.service import Service
+# from webdriver_manager.chrome import ChromeDriverManager
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request, g
 from flask_cors import CORS
@@ -252,31 +252,31 @@ def save_content(url, content):
   }
   collection.insert_one(document)
 
-def extract_text_with_selenium(url):
-    # Initialize Selenium WebDriver
-    options = webdriver.ChromeOptions()
-    options.add_argument('--headless')
-    options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3')
+# def extract_text_with_selenium(url):
+#     # Initialize Selenium WebDriver
+#     options = webdriver.ChromeOptions()
+#     options.add_argument('--headless')
+#     options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3')
 
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+#     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     
-    # Navigate to the URL
-    driver.get(url)
+#     # Navigate to the URL
+#     driver.get(url)
     
-    # Get the page source
-    html_content = driver.page_source
-    soup = BeautifulSoup(html_content, 'html.parser')
+#     # Get the page source
+#     html_content = driver.page_source
+#     soup = BeautifulSoup(html_content, 'html.parser')
     
-    # Extract all text elements
-    text_elements = [tag.get_text(separator=' ', strip=True) for tag in soup.find_all(['p', 'span', 'a', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])]
+#     # Extract all text elements
+#     text_elements = [tag.get_text(separator=' ', strip=True) for tag in soup.find_all(['p', 'span', 'a', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])]
     
-    # Combine all text elements into one string
-    combined_text = "\n".join(text_elements)
+#     # Combine all text elements into one string
+#     combined_text = "\n".join(text_elements)
     
-    # Clean up: close the browser window
-    driver.quit()
+#     # Clean up: close the browser window
+#     driver.quit()
     
-    return combined_text
+#     return combined_text
 
 @app.route("/manually", methods=["POST"])
 def lurnify_from_content():
