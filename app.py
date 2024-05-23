@@ -3,256 +3,35 @@ import json
 import os
 import re
 import time
-from datetime import datetime 
 import math
-from concurrent.futures import ThreadPoolExecutor
 import PyPDF2
 import requests
-import tiktoken
-from pptx import Presentation
-from docx import Document
+from gevent import monkey
+from flask_cors import CORS
+from flask import Flask, jsonify, request
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request, g
-from flask_cors import CORS
-from gevent import monkey
-from openai import OpenAI
 from werkzeug.utils import secure_filename
-from pymongo import MongoClient
 from youtube_transcript_api import YouTubeTranscriptApi
 
-load_dotenv()
+from utils.mongodb import save_content
+from utils.file_read import process_file
+from utils.youtube import is_youtube_url
+from utils.image import extract_cover_image
+from utils.openai import summarize, quiz, quiz_from_stub
+from utils.content import num_tokens_from_string, split_content_evenly
+from utils.prompt import read_prompt_file, update_prompt_file
 
-api_key = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=api_key)
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
 MODEL = "gpt-3.5-turbo"
-UPLOAD_FOLDER = "uploads"
 
 SUMMARY_PROMPT_FILE_PATH = 'Prompts/summary.txt'
 QUIZ_PROMPT_FILE_PATH = 'Prompts/quiz.txt'
 STUB_PROMPT_FILE_PATH = 'Prompts/stub.txt'
-
-MAX_RETRIES = 5  
-RETRY_DELAY = 1
-
-mongo_client = MongoClient('mongodb+srv://krish:yXMdTPwSdTRo7qHY@serverlessinstance0.18otqeg.mongodb.net/')
-db = mongo_client['Lurny']
-collection = db['contents']
-
-headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
-
-def get_transcript(video_id):
-    """Function get_transcript from youtube video id"""        
-    transcript = YouTubeTranscriptApi.get_transcript(video_id)
-
-def is_youtube_url(url):
-    """Function check url is youtube url"""    
-    
-    return "youtube.com" in url or "youtu.be" in url
-
-def num_tokens_from_string(string: str, encoding_name: str) -> int:
-    """Function get number of tokens"""
-    encoding = tiktoken.encoding_for_model(encoding_name)
-    num_tokens = len(encoding.encode(string))
-    return num_tokens
-
-def split_content_evenly(content, parts):
-    """Function split content as parts"""
-    
-    if parts <= 0:
-        raise ValueError("Number of parts must be greater than zero.")
-    
-    part_len = len(content) // parts
-    splits = []
-    index = 0
-    
-    for _ in range(parts):
-        splits.append(content[index: index + part_len])
-        index += part_len
-    return splits
-
-def summarize(text):
-    """Function summarize with retry logic"""    
-    
-    tools = [
-        {
-            "type": "function",
-            "function": {
-                "name": "get_title_summary_hashtags",
-                "description": "Get title, summary and hash_tags from use's message.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "title": {
-                            "type": "string",
-                            "description": "title",
-                        },
-                        "summary": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "bulleted summary",
-                        },
-                        "hash_tags": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "hash tags",
-                        },
-                    },
-                    "required": ["title", "summary", "hash_tags"],
-                },
-            },
-        }
-    ]
-
-    attempts = 0
-
-    while attempts < MAX_RETRIES:
-        try:
-            with open(SUMMARY_PROMPT_FILE_PATH, encoding='utf-8') as file:
-                prompt = file.read()
-            
-            response = client.chat.completions.create(
-                model=MODEL,
-                messages=[
-                    {"role": "system", "content": prompt},
-                    {"role": "user", "content": text},
-                ],
-                tools=tools,
-            )
-
-            print("Summary Done")
-            # Check if the response contains the expected output
-            if response.choices[0].message.tool_calls is not None:
-                output = []
-                for res in response.choices[0].message.tool_calls:
-                    output.append(res.function.arguments)
-                return output[0]
-            
-            # If we got a response but tool_calls is None, raise an exception to retry
-            else:
-                raise ValueError("Received None from tool_calls")
-
-        except (ValueError, AttributeError) as e:
-            attempts += 1
-            print(f"Attempt {attempts} failed (Summarize) with error: {e}. Retrying...")
-            time.sleep(RETRY_DELAY)
-    
-    # If we've exceeded the maximum number of retries, raise an exception
-    raise RuntimeError("Max retries exceeded. Unable to get a valid response.")
-
-def quiz_from_stub(text):
-    """Function Generate Quizzes"""
-    # Assuming split_content_evenly is a function that splits the text into even parts
-    splits = split_content_evenly(text, 5)
-    
-    quizzes = []
-    # Use ThreadPoolExecutor to execute tasks asynchronously
-    with ThreadPoolExecutor() as executor:
-        # Map the generate_quiz function over the splits
-        future_quizzes = executor.map(quiz, splits)
-        
-        for future_quiz in future_quizzes:
-            quizzes.append(future_quiz)
-    
-    return quizzes   
-
-def quiz(text):
-    """Function Generate Quiz"""
-
-    tools = [
-        {
-            "type": "function",
-            "function": {
-                "name": "get_question_answer",
-                "description": "Generate question and answers, correctanswer, explanation for the question",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "question": {
-                            "type": "string",
-                            "description": "question",
-                        },
-                        "answer": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "answers",
-                        },
-                        "correctanswer": {
-                            "type": "string",
-                            "description": "correct answer",
-                        },
-                        "explanation": {"type": "string", "description": "explanation"},
-                    },
-                    "required": ["question", "answer", "correctanswer", "explanation"],
-                },
-            },
-        }
-    ]
-    attempts = 0
-
-    while attempts < MAX_RETRIES:
-        try:
-            with open(QUIZ_PROMPT_FILE_PATH, encoding='utf-8') as file:
-                prompt = file.read()
-
-            response = client.chat.completions.create(
-                model=MODEL,
-                messages=[
-                    {"role": "system", "content": prompt},
-                    {"role": "user", "content": text},
-                ],
-                tools=tools,
-            )
-            print("token number of split", num_tokens_from_string(text, MODEL))
-
-            if response.choices[0].message.tool_calls is not None:
-                output = []
-                for res in response.choices[0].message.tool_calls:
-                    output.append(res.function.arguments)
-                return output[0]
-
-            # If we got a response but tool_calls is None, raise an exception to retry
-            else:
-                raise ValueError("Received None from tool_calls")
-
-        except (ValueError, AttributeError) as e:
-            attempts += 1
-            print(f"Attempt {attempts} failed (Quiz) with error: {e}. Retrying...")
-            time.sleep(RETRY_DELAY)
-
-    # If we've exceeded the maximum number of retries, raise an exception
-    raise RuntimeError("Max retries exceeded. Unable to get a valid response.")
-
-def extract_cover_image(url):
-    """Function extract_cover_image"""    
-    
-    page = requests.get(url)
-    soup = BeautifulSoup(page.content, "html.parser")
-    cover_image = soup.find(
-        "meta", property="og:image"
-    )  # Check for Open Graph image tag
-    if cover_image:
-        return cover_image["content"]
-    cover_image = soup.find("meta", itemprop="image")  # Check for Schema.org image tag
-    if cover_image:
-        return cover_image["content"]
-    cover_image = soup.find("img")  # Fallback to the first image tag on the page
-    if cover_image:
-        return cover_image["src"]
-    return None
-
-def save_content(url, content):
-  """Function save content to database"""
-  document = {
-    'url': url,
-    'content': content,
-    'timestamp': datetime.utcnow()
-  }
-  collection.insert_one(document)
 
 @app.route("/manually", methods=["POST"])
 def lurnify_from_content():
@@ -281,7 +60,7 @@ def lurnify_from_content():
         results = []
         for split in splits:                        
             summary_content = summarize(split)
-            question_content = quiz_from_stub(split)
+            question_content = quiz(split)
 
             json_string = json.dumps(
                 {
@@ -316,7 +95,7 @@ def lurnify_from_url():
 
         start = time.time()
         print("=>url", url)
-        # openai_client = g.openai_client
+
         # Extract text from the URL
         if is_youtube_url(url):
             # Extract video ID from the YouTube URL
@@ -331,7 +110,6 @@ def lurnify_from_url():
                     return jsonify({"error": str(e)}), 400
             else:
                 return jsonify({"error": "No YouTube video ID found in URL"}), 400
-
         elif url.lower().endswith(".pdf"):
             media = "PDF"
             try:
@@ -347,7 +125,7 @@ def lurnify_from_url():
                 return jsonify({"error": str(e)}), 400
         else:
             media = "web"
-            page = requests.get(url, headers)
+            page = requests.get(url)
 
             soup = BeautifulSoup(page.content, "html.parser")
             cover_image_url = extract_cover_image(url)
@@ -371,7 +149,7 @@ def lurnify_from_url():
         results = []
         for split in splits:                        
             summary_content = summarize(split)
-            question_content = quiz_from_stub(split)
+            question_content = quiz(split)
 
             json_string = json.dumps(
                 {
@@ -440,99 +218,14 @@ def lurnify_from_file():
     else:
         return jsonify({'error': 'File type not allowed'}), 400
 
-def process_file(path, filetype):
-    try:
-        if filetype == 'pdf':
-            return extract_text_from_pdf(path)
-        elif filetype == 'pptx':
-            return extract_text_from_ppt(path)
-        elif filetype == 'txt':
-            return extract_text_from_txt(path) 
-        elif filetype == 'docx':
-            return extract_text_from_doc(path)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-def extract_text_from_pdf(filepath):
-    # Opening the PDF file in binary read mode
-    with open(filepath, 'rb') as file:
-        pdf_reader = PyPDF2.PdfReader(file)
-        text = ""
-        for page in pdf_reader.pages:
-            text += page.extract_text() + " "
-    return text
-
-def extract_text_from_txt(filepath):
-    with open(filepath, 'r', encoding='utf-8') as file:
-        text = file.read()
-    return text
-
-def extract_text_from_ppt(path):
-    prs = Presentation(path)
-    text = ''
-    for slide in prs.slides:
-        for shape in slide.shapes:
-            if hasattr(shape, "text"):
-                text += shape.text + '\n'
-    return text
-
-def extract_text_from_doc(path):
-    doc = Document(path)
-    text = '\n'.join([para.text for para in doc.paragraphs])
-    return text
-
 @app.route("/get_quiz", methods=["POST"])
 def generage_quiz():
     """Function analyze"""    
     data = request.get_json()
     stub = data["stub"]
+    quiz = quiz_from_stub(stub)
 
-    tools = [
-        {
-            "type": "function",
-            "function": {
-                "name": "get_question_answer",
-                "description": "Generate question and answers",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "question": {
-                            "type": "string",
-                            "description": "question",
-                        },
-                        "answer": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "available answer",
-                        },
-                        "correctanswer": {
-                            "type": "string",
-                            "description": "correct answer",
-                        },
-                        "explanation": {"type": "string", "description": "explanation"},
-                    },
-                    "required": ["question", "answer", "correctanswer", "explanation"],
-                },
-            },
-        }
-    ]    
-    
-    with open(STUB_PROMPT_FILE_PATH, encoding='utf-8') as file:
-        prompt = file.read()
-        
-    response = client.chat.completions.create(
-        model=MODEL,
-        messages=[
-            {"role": "system", "content": prompt},
-            {"role": "user", "content": stub},
-        ],
-        tools=tools,
-    )    
-
-    output = []
-    for res in response.choices[0].message.tool_calls:
-        output.append(res.function.arguments)
-    return output[0] 
+    return quiz
 
 @app.route("/update_prompts", methods=["POST"])
 def update_prompts():
@@ -575,23 +268,6 @@ def get_prompts():
     
     return jsonify(prompts), 200
 
-def read_prompt_file(file_path):
-    """Function to read the content of a prompt file"""
-    try:
-        with open(file_path, 'r', encoding='utf-8') as file:
-            return file.read()
-    except Exception as e:
-        return None
-          
-def update_prompt_file(file_path, new_prompt):
-    """Function to update a prompt file"""
-    try:
-        with open(file_path, 'w', encoding='utf-8') as file:
-            file.write(new_prompt)
-        return True
-    except Exception as e:
-        return False
-
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'txt', 'pdf', 'docx', 'pptx', 'txt'}
     return '.' in filename and \
@@ -600,7 +276,7 @@ def allowed_file(filename):
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
-        port=5111,
+        port=5173,
         threaded=True,
         debug=True,
         use_reloader=False,
