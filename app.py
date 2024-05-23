@@ -132,7 +132,8 @@ def summarize(text):
                 return output[0]
             
             # If we got a response but tool_calls is None, raise an exception to retry
-            # raise ValueError("Received None from tool_calls")
+            else:
+                raise ValueError("Received None from tool_calls")
 
         except (ValueError, AttributeError) as e:
             attempts += 1
@@ -214,7 +215,8 @@ def quiz(text):
                 return output[0]
 
             # If we got a response but tool_calls is None, raise an exception to retry
-            raise ValueError("Received None from tool_calls")
+            else:
+                raise ValueError("Received None from tool_calls")
 
         except (ValueError, AttributeError) as e:
             attempts += 1
