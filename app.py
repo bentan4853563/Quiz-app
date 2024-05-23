@@ -43,6 +43,8 @@ mongo_client = MongoClient('mongodb+srv://krish:yXMdTPwSdTRo7qHY@serverlessinsta
 db = mongo_client['Lurny']
 collection = db['contents']
 
+headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
+
 def get_transcript(video_id):
     """Function get_transcript from youtube video id"""        
     transcript = YouTubeTranscriptApi.get_transcript(video_id)
@@ -345,7 +347,8 @@ def lurnify_from_url():
                 return jsonify({"error": str(e)}), 400
         else:
             media = "web"
-            page = requests.get(url)
+            session = requests.Session()
+            page = session.get(url, headers)
 
             soup = BeautifulSoup(page.content, "html.parser")
             print("media", soup, media)
