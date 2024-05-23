@@ -2,4 +2,15 @@ requests
 bs4
 flask
 openai
-flask_cors
+flask-cors
+gevent
+gunicorn
+python-pptx
+python-docx
+beautifulsoup4
+python-dotenv
+pymongo
+youtube_transcript_api
+tiktoken
+requests
+PyPDF2

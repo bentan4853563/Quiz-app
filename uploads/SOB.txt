@@ -1,0 +1,110 @@
+SOB = {
+  "General Benefits": [
+    "Area of Cover",
+    "Overall Annual Limit"
+  ],
+  "In Patient Benefits": [
+    "Hospital accommodation",
+    "Prescription drugs & materials",
+    "Surgical fees, including anesthesia & theatre charges",
+    "Physician, surgeon, & anesthetist fees",
+    "Surgical appliances and prosthesis (if surgically required)",
+    "Diagnostics and laboratory",
+    "Prescribed Physiotherapy
+      □ Integral part of the treatment and,
+      □ It is not the initial reason of admission",
+    "Companion accommodation 
+      □ Treatment is within the area of cover 
+      □ Companion shall be medically necessary and upon the request of the treating doctor
+      □ Fees are paid for the accommodation of the companion within the same room the main patient is admitted",
+    "Inpatient cash benefit
+      □ Treatment is within the area of cover
+      □ Treatment is absolutely free of charge
+      □ Admission of the insured is medically necessary (Excluding Qatar Members)
+      □ No other benefits will be paid for any admission where insured is getting the cash benefit",
+    "Parent accommodation
+      □ Treatment is within the area of cover
+      □ Main admitted member is a child below 18 years old.
+      □ Fees are paid for the accommodation of the parent within the same room the child is admitted","Charges of accommodation, Charges of operating theatre, Surgeon and  anesthesiologist’s fee, Drugs, Laboratory investigations, Radiological investigations, Chemotherapy, Reconstructive surgery and Radiotherapy"
+  ],
+  "Out Patient Benefits": [
+    "Medical practitioner (GP) fees""Specialists fees""Diagnostics and laboratory""Prescription drugs",
+    "Alternative Treatments (Ayurveda and
+      □ Chiropractic, □ Osteopathy, □ Homeopathy, □ Acupuncture, □ Chinese Herbal Medicine, □ Ayurveda treatment
+      □ Cupping, Podiatry, Aromatherapy, Bowen technique, Hypnotherapy, Massage, Meditation, Mindfulness, Reiki, Yoga, and those NOT listed in the inclusion criteria",
+    "Prescribed Physiotherapy
+      □ Upon referral from GP or Specialist","Consultation, Laboratory investigations, Drugs, Radiological investigations , Chemotherapy and its administration and Radiotherapy","Deductible payable by the Insured (Free follow-up visits within 7 days for the same condition to the same medical practitioner within the applicable network)""Deductible payable by the Insured (Maternity)"
+  ],
+  "Other Benefits": [
+    "Day-care treatment",
+    "Out-patient surgery",
+    "Local ambulance",
+    "Imaging (X-ray, MRI, CT, PET, Ultrasound)",
+    "Child Preventive Services, Vaccines and Immunizations
+      □ Recognized and essential vaccinations and immunizations as mandated by the local regulatory authorities from where the Policy is issued""Influenza Vaccine (once in a year) - covered for DUBAI MEMBERS ONLY",
+    "Deviated Nasal Septum Covered when,
+      □ Treatment related to a septal deformity 
+      □ Continuous nasal airway obstruction resulting in nasal breathing difficulty not 
+      responding to appropriate medical therapy.",
+    "Hormone replacement therapy
+      □ Implants and patches form covered",
+      "Nursing at home 
+      □ Recommended by a specialist following Inpatient or day patient treatment which is covered by this policy 
+      □ Starts immediately after the beneficiary leaves hospital, or instead of Hospitalization",
+      "Rehabilitation (Inpatient, day-care and Outpatient treatment 
+      □ Covered and must commence within 14 days of discharge after the acute medical and/or surgical treatment cases""Reconstructive Surgery",
+    "Organ Transplant Covered when, 
+      □ The transplant is medically necessary 
+      □ Anti-rejection medicines following a transplant, when they are given on an Inpatient basis""Passive War and Terrorism Risk""Oral and Maxillofacial surgery",
+    "Accidental damage of teeth
+      □ Treatment for teeth damaged in an accident provided that treatment is 
+      requested within 24 hours following the accident",
+      "International Emergency Medical Assistance (IEMA) 
+      □ Emergency Medical Evacuation 
+      □ Repatriation of mortal remains""Vitamins - Testing of Vitamins deficiency if prescribed and medically necessary""Vitamins registered as medications (if prescribed and medically necessary for a severe deficiency)",
+    "Psychiatric Treatment 
+      □ Inpatient, day-care and Outpatient Treatment 
+      □ Referral required For Abu Dhabi members - Treatment of transient mental disorder or acute reaction to stress covered up to Policy Limit""Work Related Injuries""Road Traffic Accidents",
+    "Ophthalmology 
+      □ Eye consultation and any treatment for medical conditions related to it""Kidney dialysis""Obstructive Sleep Apnoea""Teleconsultation: 24/7 virtual healthcare consultation with licensed GPs through voice and video calls, teleprescription, medications delivery (in UAE), health guidance from a nutritionist and chronic conditions monitoring and coaching. Other features include no co-pay on teleconsultation, multilingual service, concierge booking at the nearest provider.",
+    "ProAct: 
+      Dedicated case management for rare and complex conditions during patient treatment journey",
+    "Shield for Diabetes: 
+      □ End-to-end care for pre-diabetics and Type 1 & 2 diabetics from GP and nutritionist teleconsultation, medications refill and delivery, as well as telemonitoring and coaching from a dedicated team (UAE members only) Glucometer, Lancets and Strips are not covered.",
+    "Cancer Safe: 
+      □ Patient Support Program for patients with Breast, Cervical and Colon cancers. It provides support services and assistance to people who require long term healthcare treatments (Dubai members only)",
+    "Hepatitis Safe:
+      □ Patient Support Program for patients with Hepatitis C. It provides support services and assistance to people who require long term healthcare treatments (Dubai members only)",
+    "MindSet: 
+      □ Holistic program aiming at raising awareness about mental health by reducing the stigma, preventing mental distress by fostering resilience and empowering employees towards a state of psychological safety at work and in their lives.",
+    "Cancer support benefits
+      Stem cells and bone marrow transplants covered when,
+      □ The transplant is medically necessary
+      □ The material to be transplanted is the beneficiary’s own bone marrow or stem cells, or bone marrow taken from a verified and legitimate source""Screening / Health Check-up (Routine)",
+    "Basic Routine Dental Benefits:
+      Consultation
+      Prescribed Medications
+      Extraction
+      Composite/Amalgam filling
+      Dental surgery
+      Root canal treatment
+      Scaling and polishing
+      Gum disease treatment
+      Crowns / Bridgework
+      Coinsurance on ALL Routine Dental treatment (including consultation, diagnostic and Pharmacy)",
+    "Optical Benefits: 
+      □ Routine optical services carried out by a qualified and registered 
+      ophthalmologist or optometrist; and costs of prescribed spectacles/corrective lenses for refractive errors (Maximum of 1 Frame per year)
+      □ The provision of tinted/ reactive lenses, sunglasses, non-corrective contact lenses, laser eye surgery or similar procedures",
+    "Maternity Benefits:
+      □ Legal Abortion and Miscarriage will be covered under this benefit
+      □ Genetic testing for unborn child
+      □ Infertility Treatment", "Maternity Complications","New Born Cover",
+    "Preventive Services, Vaccines and Immunizations (within the Emirate of Dubai)",
+    "Diagnostic and treatment services for dental and gum treatments Hearing and vision aids, and vision correction by surgeris and laser",
+    "Pre-existing & Chronic conditions",
+    "Network Applicable",
+    "Claims outside UAE within Geographical Scope",
+    "Claims Settlement inside UAE"
+  ]
+}
