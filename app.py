@@ -99,7 +99,7 @@ def summarize(text):
                         "hash_tags": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "hash tag",
+                            "description": "hash tags",
                         },
                     },
                     "required": ["title", "summary", "hash_tags"],
@@ -132,7 +132,7 @@ def summarize(text):
                 return output[0]
             
             # If we got a response but tool_calls is None, raise an exception to retry
-            raise ValueError("Received None from tool_calls")
+            # raise ValueError("Received None from tool_calls")
 
         except (ValueError, AttributeError) as e:
             attempts += 1
