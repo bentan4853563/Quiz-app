@@ -347,8 +347,7 @@ def lurnify_from_url():
                 return jsonify({"error": str(e)}), 400
         else:
             media = "web"
-            session = requests.Session()
-            page = session.get(url, headers)
+            page = requests.get(url, headers)
 
             soup = BeautifulSoup(page.content, "html.parser")
             print("media", soup, media)
