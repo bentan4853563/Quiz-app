@@ -290,7 +290,6 @@ def lurnify_from_content():
                 }
             )
             results.append(json_string)
-        print(results)
 
         end = time.time()
         print(end - start, "s")
@@ -316,7 +315,6 @@ def lurnify_from_url():
         print("=>url", url)
         # openai_client = g.openai_client
         # Extract text from the URL
-        print("is_youtube_url", is_youtube_url(url))
         if is_youtube_url(url):
             # Extract video ID from the YouTube URL
             video_id_match = re.search(r"(?:v=|\/)([0-9A-Za-z_-]{11})", url)
@@ -326,7 +324,6 @@ def lurnify_from_url():
                     # Get the transcript from the YouTube video
                     transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=['en', 'hi'])
                     combined_text = "".join(entry["text"] for entry in transcript_list)
-                    print("Video script", combined_text)
                 except Exception as e:
                     return jsonify({"error": str(e)}), 400
             else:
@@ -350,14 +347,12 @@ def lurnify_from_url():
             page = requests.get(url, headers)
 
             soup = BeautifulSoup(page.content, "html.parser")
-            print("media", soup, media)
             cover_image_url = extract_cover_image(url)
 
             text_elements = [
                 tag.get_text() for tag in soup.find_all(["p", "span", "a", "li"])
             ]
             combined_text = ", ".join(text_elements)
-        print("combined_text", combined_text)
         
         # Save content to DB
         save_content(url, combined_text)
@@ -385,8 +380,6 @@ def lurnify_from_url():
                 }
             )
             results.append(json_string)
-        print(results)
-
         end = time.time()
         print(end - start, "s")
 
@@ -407,7 +400,6 @@ def lurnify_from_file():
         file_path = os.path.join("uploads", filename)
         file.save(file_path)
         text = process_file(file_path, filename.rsplit('.', 1)[1].lower())
-        print("text", text)
         start = time.time()
 
         # Save content to DB
@@ -436,7 +428,6 @@ def lurnify_from_file():
                 }
             )
             results.append(json_string)
-        print(results)
 
         end = time.time()
         print(end - start, "s")
@@ -538,7 +529,6 @@ def generage_quiz():
     output = []
     for res in response.choices[0].message.tool_calls:
         output.append(res.function.arguments)
-        print("output", output)
     return output[0] 
 
 @app.route("/update_prompts", methods=["POST"])
