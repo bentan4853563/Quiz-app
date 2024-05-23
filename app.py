@@ -123,7 +123,6 @@ def summarize(text):
                 ],
                 tools=tools,
             )
-            print(response)
             # Check if the response contains the expected output
             if response.choices[0].message.tool_calls is not None:
                 output = []
