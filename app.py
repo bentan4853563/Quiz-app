@@ -114,7 +114,7 @@ def summarize(text):
         try:
             with open(SUMMARY_PROMPT_FILE_PATH, encoding='utf-8') as file:
                 prompt = file.read()
-            print("input token", num_tokens_from_string(prompt + str(tools), MODEL))
+            
             response = client.chat.completions.create(
                 model=MODEL,
                 messages=[
@@ -123,6 +123,8 @@ def summarize(text):
                 ],
                 tools=tools,
             )
+
+            print("Summary Done")
             # Check if the response contains the expected output
             if response.choices[0].message.tool_calls is not None:
                 output = []
