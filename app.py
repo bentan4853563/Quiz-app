@@ -27,7 +27,7 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-MODEL = "gpt-3.5-turbo"
+MODEL = "gpt-4o"
 
 SUMMARY_PROMPT_FILE_PATH = 'Prompts/summary.txt'
 QUIZ_PROMPT_FILE_PATH = 'Prompts/quiz.txt'
