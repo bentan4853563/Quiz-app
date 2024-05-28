@@ -1,15 +1,21 @@
+import io
+import json
 import os
+import re
 import time
 import math
-import json
-import asyncio
+import PyPDF2
 import requests
-from dotenv import load_dotenv
+# from gevent import monkey
 from flask_cors import CORS
 from flask import Flask, jsonify, request
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
 from youtube_transcript_api import YouTubeTranscriptApi
+
+from quart import Quart, jsonify, request
+import asyncio
 
 from utils.mongodb import save_content
 from utils.file_read import process_file
@@ -21,7 +27,7 @@ from utils.prompt import read_prompt_file, update_prompt_file
 
 load_dotenv()
 
-app = Flask(__name__)
+app = Quart(__name__)
 CORS(app)
 
 MODEL = "gpt-3.5-turbo"
@@ -57,7 +63,7 @@ async def lurnify_from_content():
         results = []
         for split in splits: 
             print("before summarization")
-            summary_content = asyncio.run(summarize(split))
+            summary_content = await summarize(split)
             print("after summarization")
             question_content = generate_quizes(split)
             print("after quiz")
@@ -148,7 +154,7 @@ async def lurnify_from_url():
         results = []
         for split in splits:                        
             print("before summarization")
-            summary_content = asyncio.run(summarize(split))
+            summary_content = await summarize(split)
             print("after summarization")
             question_content = generate_quizes(split)
             print("after quiz")
@@ -198,7 +204,7 @@ async def lurnify_from_file():
                 
         results = []
         for split in splits:                        
-            summary_content = asyncio.run(summarize(split))
+            summary_content = await summarize(split)
             question_content = generate_quizes(split)
 
             json_string = json.dumps(
@@ -221,7 +227,7 @@ async def lurnify_from_file():
         return jsonify({'error': 'File type not allowed'}), 400
 
 @app.route("/get_quiz", methods=["POST"])
-def generage_quiz():
+async def generage_quiz():
     """Function analyze"""    
     data = request.get_json()
     stub = data["stub"]
