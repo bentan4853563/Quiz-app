@@ -15,7 +15,7 @@ with open("Categories.json", "r") as file:
 # Existing compare_sentences function with minor corrections
 
 
-def compare_sentences(session, source_sentence, sentences):
+def compare_sentences(source_sentence, sentences):
     payload = {
         "inputs": {
             "source_sentence": source_sentence,
@@ -27,24 +27,28 @@ def compare_sentences(session, source_sentence, sentences):
     retry_count = 0
     while retry_count < max_retries:
         try:
-            with session.post("https://api-inference.huggingface.co/models/sentence-transformers/msmarco-distilbert-base-tas-b", headers=headers, json=payload) as response:
-                response.raise_for_status()
-                response_json = response.json()
-                if 'error' in response_json:
-                    print(f"Error: {response_json['error']}")
-                    asyncio.sleep(5)
-                else:
-                    return response_json
+            response = requests.post(
+                "https://api-inference.huggingface.co/models/sentence-transformers/msmarco-distilbert-base-tas-b",
+                headers=headers,
+                json=payload
+            )
+            response.raise_for_status()
+            
+            response_json = response.json()
+            if 'error' in response_json:
+                print(f"Error: {response_json['error']}")
+                time.sleep(5)  # Blocking sleep since we are now using synchronous calls
+            else:
+                return response_json
 
-        except (aiohttp.ClientError, aiohttp.ClientResponseError, asyncio.TimeoutError) as e:
+        except requests.exceptions.RequestException as e:
             print(f"An error occurred during API request: {e}")
-            asyncio.sleep(5)
+            time.sleep(5)  # Blocking sleep
 
         retry_count += 1
 
     print("Failed to get a valid response after retries.")
     return None
-
 
 async def classify(session, keyword):
     try:
@@ -83,7 +87,7 @@ async def classify(session, keyword):
         elif isinstance(fourth_level_categories_dict, dict):
             fourth_level_categories = list(fourth_level_categories_dict.keys())
 
-        compare_result = await compare_sentences(session, keyword, fourth_level_categories)
+        compare_result = await compare_sentences( keyword, fourth_level_categories)
         if compare_result is None:
             return {keyword: classification}
 
@@ -99,7 +103,5 @@ async def classify(session, keyword):
 
 
 def process_hashtags(hashtags):
-    with aiohttp.ClientSession(headers=headers) as session:
-        tasks = [classify(session, hashtag) for hashtag in hashtags]
-        results = asyncio.gather(*tasks)
+    results = [classify(hashtag) for hashtag in hashtags]
     return results
