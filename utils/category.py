@@ -101,41 +101,41 @@ def classify(keyword):
 
     return {keyword: classification}
 
-# def classify(keyword):
-#     try:
-#         classification = []
+def classify(keyword):
+    try:
+        classification = []
 
-#         # Flatten all category levels into a list of tuples containing the full path and the fourth level category
-#         all_categories_with_paths = []
-#         for first, second_level_dict in category_object.items():
-#             for second, third_level_dict in second_level_dict.items():
-#                 if isinstance(third_level_dict, dict):  # Ensure it's a dict before working with keys
-#                     for third, fourth_level_list_or_dict in third_level_dict.items():
-#                         if isinstance(fourth_level_list_or_dict, list):
-#                             for fourth in fourth_level_list_or_dict:
-#                                 all_categories_with_paths.append((first, second, third, fourth))
-#                         elif isinstance(fourth_level_list_or_dict, dict):
-#                             for fourth in fourth_level_list_or_dict.keys():
-#                                 all_categories_with_paths.append((first, second, third, fourth))
-#         print(all_categories_with_paths)
-#         # Extract just the fourth level categories for comparison
-#         fourth_level_categories = [path[-1] for path in all_categories_with_paths]
+        # Flatten all category levels into a list of tuples containing the full path and the fourth level category
+        all_categories_with_paths = []
+        for first, second_level_dict in category_object.items():
+            for second, third_level_dict in second_level_dict.items():
+                if isinstance(third_level_dict, dict):  # Ensure it's a dict before working with keys
+                    for third, fourth_level_list_or_dict in third_level_dict.items():
+                        if isinstance(fourth_level_list_or_dict, list):
+                            for fourth in fourth_level_list_or_dict:
+                                all_categories_with_paths.append((first, second, third, fourth))
+                        elif isinstance(fourth_level_list_or_dict, dict):
+                            for fourth in fourth_level_list_or_dict.keys():
+                                all_categories_with_paths.append((first, second, third, fourth))
+        print(all_categories_with_paths)
+        # Extract just the fourth level categories for comparison
+        fourth_level_categories = [path[-1] for path in all_categories_with_paths]
 
-#         # Find the best match in the fourth level categories
-#         compare_results = compare_sentences(keyword, fourth_level_categories)
-#         if compare_results is None or not compare_results[0]:
-#             print("No matching fourth level category found.")
-#             return {keyword: classification}
+        # Find the best match in the fourth level categories
+        compare_results = compare_sentences(keyword, fourth_level_categories)
+        if compare_results is None or not compare_results[0]:
+            print("No matching fourth level category found.")
+            return {keyword: classification}
         
-#         # Get the highest score index
-#         max_value_index = compare_results.index(max(compare_results))
-#         best_match_path = all_categories_with_paths[max_value_index]
-#         classification = best_match_path
+        # Get the highest score index
+        max_value_index = compare_results.index(max(compare_results))
+        best_match_path = all_categories_with_paths[max_value_index]
+        classification = best_match_path
 
-#     except Exception as error:
-#         print(f"An error occurred during classification: {error}")
+    except Exception as error:
+        print(f"An error occurred during classification: {error}")
 
-#     return {keyword: list(classification)}
+    return {keyword: list(classification)}
 
 
 def process_hashtags(hashtags):
