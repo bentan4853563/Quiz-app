@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from utils.mongodb import save_content
 from utils.content import split_content_evenly
 from utils.content import num_tokens_from_string
+from utils.category import process_hashtags
 
 load_dotenv()
 
@@ -26,7 +27,7 @@ api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key)
 
 
-def summarize(text):
+async def summarize(text):
     """Function summarize with retry logic"""    
     tools = [
         {
@@ -43,8 +44,21 @@ def summarize(text):
                         },
                         "summary": {
                             "type": "array",
-                            "items": {"type": "string"},
-                            "description": "bulleted summary",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "question": {
+                                        "type": "string",
+                                        "description": "question"
+                                    },
+                                    "answer": {
+                                        "type": "string",
+                                        "description": "answer"
+                                    }
+                                },
+                                "required": ["question", "answer"]
+                            }
+                            
                         },
                         "hash_tags": {
                             "type": "array",
@@ -78,7 +92,12 @@ def summarize(text):
                 output = []
                 for res in response.choices[0].message.tool_calls:
                     output.append(res.function.arguments)
-                return output[0]
+                result = json.loads(output[0])
+                print("start process hashtag")
+                collections = await process_hashtags(result["hash_tags"])
+                result["hash_tags"] = collections
+                print(result)
+                return result
             
             # If we got a response but tool_calls is None, raise an exception to retry
             else:
@@ -88,11 +107,11 @@ def summarize(text):
             attempts += 1
             print(f"Attempt {attempts} failed (Summarize) with error: {e}. Retrying...")
             time.sleep(RETRY_DELAY)
-    
+
     # If we've exceeded the maximum number of retries, raise an exception
     raise RuntimeError("Max retries exceeded. Unable to get a valid response.")
 
-def quiz_from_stub(text):
+def generate_quizes(text):
     """Function Generate Quizzes"""
     # Assuming split_content_evenly is a function that splits the text into even parts
     splits = split_content_evenly(text, 5)
@@ -224,48 +243,3 @@ def quiz_from_stub(stub):
     for res in response.choices[0].message.tool_calls:
         output.append(res.function.arguments)
     return output[0]
-
-def quiz_from_text(text):
-    """Function generate quiz from text"""       
-    try:
-        media = None
-        url = None
-        cover_image_url = None
-
-        start = time.time()
-
-        # Save content to DB
-        save_content(None, text)
-        
-        # Calulate number of tokens for the certain gpt model
-        num_tokens = num_tokens_from_string(text, MODEL)
-        print(num_tokens, len(text))
-        
-        num_parts = math.ceil(num_tokens / 15000) 
-        # Split entire content to several same parts when content is large than gpt token limit
-        splits = split_content_evenly(text, num_parts) 
-                
-        results = []
-        for split in splits:                        
-            summary_content = summarize(split)
-            question_content = quiz(split)
-
-            json_string = json.dumps(
-                {
-                    "summary_content": summary_content,
-                    "questions": question_content,
-                    "image": cover_image_url if cover_image_url is not None else "",
-                    "url": url,
-                    "media": media,
-                }
-            )
-            results.append(json_string)
-
-        end = time.time()
-        print(end - start, "s")
-
-        return jsonify(results)
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-

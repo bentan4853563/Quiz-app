@@ -12,12 +12,12 @@ def split_content_evenly(content, parts):
     if parts <= 0:
         raise ValueError("Number of parts must be greater than zero.")
     
-    part_len = len(content) 
+    part_len = len(content) // parts
     splits = []
     index = 0
     
     for _ in range(parts):
         splits.append(content[index: index + part_len])
         index += part_len
-        
+
     return splits

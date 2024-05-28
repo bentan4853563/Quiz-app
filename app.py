@@ -6,7 +6,7 @@ import time
 import math
 import PyPDF2
 import requests
-from gevent import monkey
+# from gevent import monkey
 from flask_cors import CORS
 from flask import Flask, jsonify, request
 from bs4 import BeautifulSoup
@@ -18,7 +18,7 @@ from utils.mongodb import save_content
 from utils.file_read import process_file
 from utils.youtube import is_youtube_url
 from utils.image import extract_cover_image
-from utils.openai import summarize, quiz, quiz_from_stub
+from utils.openai import summarize, quiz_from_stub, generate_quizes
 from utils.content import num_tokens_from_string, split_content_evenly
 from utils.prompt import read_prompt_file, update_prompt_file
 
@@ -34,7 +34,7 @@ QUIZ_PROMPT_FILE_PATH = 'Prompts/quiz.txt'
 STUB_PROMPT_FILE_PATH = 'Prompts/stub.txt'
 
 @app.route("/manually", methods=["POST"])
-def lurnify_from_content():
+async def lurnify_from_content():
     """Function fetch_data_from_url"""       
     try:
         data = request.get_json()
@@ -58,9 +58,12 @@ def lurnify_from_content():
         splits = split_content_evenly(combined_text, num_parts) 
                 
         results = []
-        for split in splits:                        
-            summary_content = summarize(split)
-            question_content = quiz(split)
+        for split in splits: 
+            print("before summarization")
+            summary_content = await summarize(split)
+            print("after summarization")
+            question_content = generate_quizes(split)
+            print("after quiz")
 
             json_string = json.dumps(
                 {
@@ -82,7 +85,7 @@ def lurnify_from_content():
         return jsonify({"error": str(e)}), 500
  
 @app.route("/fetch", methods=["POST"])
-def lurnify_from_url():
+async def lurnify_from_url():
     """Function lurnify_from_url"""       
     try:
         data = request.get_json()
@@ -94,7 +97,7 @@ def lurnify_from_url():
         cover_image_url = None
 
         start = time.time()
-        print("=>url", url)
+        print("=>url", url, is_youtube_url(url))
 
         # Extract text from the URL
         if is_youtube_url(url):
@@ -148,8 +151,11 @@ def lurnify_from_url():
                 
         results = []
         for split in splits:                        
-            summary_content = summarize(split)
-            question_content = quiz(split)
+            print("before summarization")
+            summary_content = await summarize(split)
+            print("after summarization")
+            question_content = generate_quizes(split)
+            print("after quiz")
 
             json_string = json.dumps(
                 {
@@ -170,7 +176,7 @@ def lurnify_from_url():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/lurnify-from-file', methods=['POST'])
-def lurnify_from_file():
+async def lurnify_from_file():
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
     file = request.files['file']
@@ -196,8 +202,8 @@ def lurnify_from_file():
                 
         results = []
         for split in splits:                        
-            summary_content = summarize(split)
-            question_content = quiz_from_stub(split)
+            summary_content = await summarize(split)
+            question_content = generate_quizes(split)
 
             json_string = json.dumps(
                 {
@@ -219,7 +225,7 @@ def lurnify_from_file():
         return jsonify({'error': 'File type not allowed'}), 400
 
 @app.route("/get_quiz", methods=["POST"])
-def generage_quiz():
+async def generage_quiz():
     """Function analyze"""    
     data = request.get_json()
     stub = data["stub"]
@@ -279,9 +285,9 @@ if __name__ == "__main__":
         port=5173,
         threaded=True,
         debug=True,
-        use_reloader=False,
-        ssl_context=(
-            "/etc/letsencrypt/live/lurny.net/cert.pem",
-            "/etc/letsencrypt/live/lurny.net/privkey.pem",
-        ),
+        # use_reloader=False,
+        # ssl_context=(
+        #     "/etc/letsencrypt/live/lurny.net/cert.pem",
+        #     "/etc/letsencrypt/live/lurny.net/privkey.pem",
+        # ),
     )
