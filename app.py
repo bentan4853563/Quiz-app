@@ -14,9 +14,6 @@ from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
 from youtube_transcript_api import YouTubeTranscriptApi
 
-from quart import Quart, jsonify, request
-import asyncio
-
 from utils.mongodb import save_content
 from utils.file_read import process_file
 from utils.youtube import is_youtube_url
@@ -27,7 +24,7 @@ from utils.prompt import read_prompt_file, update_prompt_file
 
 load_dotenv()
 
-app = Quart(__name__)
+app = Flask(__name__)
 CORS(app)
 
 MODEL = "gpt-3.5-turbo"
