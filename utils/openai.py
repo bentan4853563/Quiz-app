@@ -94,10 +94,8 @@ async def summarize(text):
                 for res in response.choices[0].message.tool_calls:
                     output.append(res.function.arguments)
                 result = json.loads(output[0])
-                print("start process hashtag")
                 collections = await process_hashtags(result["hash_tags"])
                 result["hash_tags"] = collections
-                print(result)
                 return result
             
             # If we got a response but tool_calls is None, raise an exception to retry
