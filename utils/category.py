@@ -76,7 +76,10 @@ async def classify(session, keyword):
         classification.append(third)
 
         fourth_level_categories_dict = category_object[first][second][third]
-        fourth_level_categories = list(fourth_level_categories_dict.keys())
+        if isinstance(fourth_level_categories_dict, list):
+            fourth_level_categories = list(fourth_level_categories_dict)
+        elif isinstance(fourth_level_categories_dict, dict):
+            fourth_level_categories = list(fourth_level_categories_dict.keys())
 
         compare_result = await compare_sentences(session, keyword, fourth_level_categories)
         if compare_result is None:
