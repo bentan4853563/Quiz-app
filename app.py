@@ -285,9 +285,9 @@ if __name__ == "__main__":
         port=5173,
         threaded=True,
         debug=True,
-        # use_reloader=False,
-        # ssl_context=(
-        #     "/etc/letsencrypt/live/lurny.net/cert.pem",
-        #     "/etc/letsencrypt/live/lurny.net/privkey.pem",
-        # ),
+        use_reloader=False,
+        ssl_context=(
+            "/etc/letsencrypt/live/lurny.net/cert.pem",
+            "/etc/letsencrypt/live/lurny.net/privkey.pem",
+        ),
     )
