@@ -53,7 +53,7 @@ async def classify(session, keyword):
             for second in category_object[first].keys():
                 categories.append(second)
 
-        compare_result = await compare_sentences(keyword, categories)
+        compare_result = await compare_sentences(session, keyword, categories)
         max_value = max(compare_result)
         max_index = compare_result.index(max_value)
         classification.append(list(categories)[max_index])
