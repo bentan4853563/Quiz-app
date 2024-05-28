@@ -50,14 +50,14 @@ def compare_sentences(source_sentence, sentences):
     print("Failed to get a valid response after retries.")
     return None
 
-async def classify(session, keyword):
+def classify(keyword):
     try:
         classification = []
 
         # First level category is not classified here, moving directly to second level
         second_level_categories = [category for first_cat in category_object.values() for category in first_cat.keys()]
         
-        compare_result = await compare_sentences(session, keyword, second_level_categories)
+        compare_result = compare_sentences(keyword, second_level_categories)
         if compare_result is None:
             return {keyword: classification}
 
@@ -68,9 +68,10 @@ async def classify(session, keyword):
         
         classification.append(first)
         classification.append(second)
+        print("1,2", first, second)
 
         third_level_categories = list(category_object[first][second].keys())
-        compare_result = await compare_sentences(session, keyword, third_level_categories)
+        compare_result = compare_sentences(keyword, third_level_categories)
         if compare_result is None:
             return {keyword: classification}
 
@@ -78,6 +79,7 @@ async def classify(session, keyword):
         max_index = compare_result.index(max_value)
         third = third_level_categories[max_index]
         classification.append(third)
+        print("3", third)
 
         fourth_level_categories_dict = category_object[first][second][third]
         if fourth_level_categories_dict is None:
@@ -87,7 +89,7 @@ async def classify(session, keyword):
         elif isinstance(fourth_level_categories_dict, dict):
             fourth_level_categories = list(fourth_level_categories_dict.keys())
 
-        compare_result = await compare_sentences( keyword, fourth_level_categories)
+        compare_result = compare_sentences( keyword, fourth_level_categories)
         if compare_result is None:
             return {keyword: classification}
 
@@ -95,6 +97,7 @@ async def classify(session, keyword):
         max_index = compare_result.index(max_value)
         fourth = fourth_level_categories[max_index]
         classification.append(fourth)
+        print("4", fourth)
 
     except Exception as error:
         print(error)
