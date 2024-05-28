@@ -3,6 +3,8 @@ import time
 import json
 import requests   # Use requests instead of aiohttp
 from dotenv import load_dotenv
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 
 load_dotenv()
 hugging_face_token = os.environ.get('HUGGING_FACE_TOKEN')
@@ -123,7 +125,7 @@ def classify(keyword):
                     break
         # Extract just the fourth level categories for comparison
         fourth_level_categories = [path[-1] for path in all_categories_with_paths]
-        print(len(fourth_level_categories), ",")
+        print(len(fourth_level_categories))
         # Find the best match in the fourth level categories
         compare_results = compare_sentences(keyword, fourth_level_categories)
         if compare_results is None or not compare_results[0]:
@@ -131,7 +133,7 @@ def classify(keyword):
             return {keyword: classification}
         # Get the highest score index
         max_value_index = compare_results.index(max(compare_results))
-        print(max_value_index, ",")
+        print(max_value_index)
         best_match_path = all_categories_with_paths[max_value_index]
         classification = best_match_path
         print(keyword, ":", classification, "\n")
@@ -140,6 +142,28 @@ def classify(keyword):
 
     return {keyword: list(classification)}
 
+# def process_hashtags(hashtags):
+#     results = [classify(hashtag) for hashtag in hashtags]
+#     return results
+
+
+
 def process_hashtags(hashtags):
-    results = [classify(hashtag) for hashtag in hashtags]
+    def classify_threaded(hashtag):
+        return classify(hashtag)
+
+    with ThreadPoolExecutor() as executor:
+        # Submit all classification tasks to the thread pool
+        future_to_hashtag = {executor.submit(classify_threaded, hashtag): hashtag for hashtag in hashtags}
+        results = []
+
+        # Iterate over the completed futures
+        for future in as_completed(future_to_hashtag):
+            hashtag = future_to_hashtag[future]
+            try:
+                result = future.result()
+                results.append(result)
+            except Exception as e:
+                print(f"An error occurred during classification of hashtag {hashtag}: {e}")
+                
     return results
