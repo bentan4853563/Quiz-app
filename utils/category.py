@@ -15,7 +15,7 @@ with open("Categories.json", "r") as file:
 # Existing compare_sentences function with minor corrections
 
 
-async def compare_sentences(session, source_sentence, sentences):
+def compare_sentences(session, source_sentence, sentences):
     payload = {
         "inputs": {
             "source_sentence": source_sentence,
@@ -27,18 +27,18 @@ async def compare_sentences(session, source_sentence, sentences):
     retry_count = 0
     while retry_count < max_retries:
         try:
-            async with session.post("https://api-inference.huggingface.co/models/sentence-transformers/msmarco-distilbert-base-tas-b", headers=headers, json=payload) as response:
+            with session.post("https://api-inference.huggingface.co/models/sentence-transformers/msmarco-distilbert-base-tas-b", headers=headers, json=payload) as response:
                 response.raise_for_status()
-                response_json = await response.json()
+                response_json = response.json()
                 if 'error' in response_json:
                     print(f"Error: {response_json['error']}")
-                    await asyncio.sleep(5)
+                    asyncio.sleep(5)
                 else:
                     return response_json
 
         except (aiohttp.ClientError, aiohttp.ClientResponseError, asyncio.TimeoutError) as e:
             print(f"An error occurred during API request: {e}")
-            await asyncio.sleep(5)
+            asyncio.sleep(5)
 
         retry_count += 1
 
@@ -98,8 +98,8 @@ async def classify(session, keyword):
     return {keyword: classification}
 
 
-async def process_hashtags(hashtags):
-    async with aiohttp.ClientSession(headers=headers) as session:
+def process_hashtags(hashtags):
+    with aiohttp.ClientSession(headers=headers) as session:
         tasks = [classify(session, hashtag) for hashtag in hashtags]
-        results = await asyncio.gather(*tasks)
+        results = asyncio.gather(*tasks)
     return results

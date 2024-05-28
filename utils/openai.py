@@ -28,7 +28,7 @@ api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key)
 
 
-async def summarize(text):
+def summarize(text):
     """Function summarize with retry logic"""    
     tools = [
         {
@@ -94,7 +94,7 @@ async def summarize(text):
                 for res in response.choices[0].message.tool_calls:
                     output.append(res.function.arguments)
                 result = json.loads(output[0])
-                collections = await process_hashtags(result["hash_tags"])
+                collections = process_hashtags(result["hash_tags"])
                 result["hash_tags"] = collections
                 return result
             

@@ -60,7 +60,7 @@ async def lurnify_from_content():
         results = []
         for split in splits: 
             print("before summarization")
-            summary_content = await summarize(split)
+            summary_content = summarize(split)
             print("after summarization")
             question_content = generate_quizes(split)
             print("after quiz")
@@ -151,7 +151,7 @@ async def lurnify_from_url():
         results = []
         for split in splits:                        
             print("before summarization")
-            summary_content = await summarize(split)
+            summary_content = summarize(split)
             print("after summarization")
             question_content = generate_quizes(split)
             print("after quiz")
@@ -201,7 +201,7 @@ async def lurnify_from_file():
                 
         results = []
         for split in splits:                        
-            summary_content = await summarize(split)
+            summary_content = summarize(split)
             question_content = generate_quizes(split)
 
             json_string = json.dumps(
