@@ -117,9 +117,9 @@ def classify(keyword):
                         elif isinstance(fourth_level_list_or_dict, dict):
                             for fourth in fourth_level_list_or_dict.keys():
                                 all_categories_with_paths.append((first, second, third, fourth))
-        
+        print(all_categories_with_paths)
         # Extract just the fourth level categories for comparison
-        fourth_level_categories = [path[-1] for path in all_categories_with_players]
+        fourth_level_categories = [path[-1] for path in all_categories_with_paths]
 
         # Find the best match in the fourth level categories
         compare_results = compare_sentences(keyword, fourth_level_categories)
