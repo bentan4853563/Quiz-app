@@ -76,6 +76,8 @@ async def classify(session, keyword):
         classification.append(third)
 
         fourth_level_categories_dict = category_object[first][second][third]
+        if fourth_level_categories_dict is None:
+            return {keyword: classification}
         print("fourth_level_categories_dict==>", fourth_level_categories_dict, isinstance(fourth_level_categories_dict, list))
         if isinstance(fourth_level_categories_dict, list):
             fourth_level_categories = list(fourth_level_categories_dict)
