@@ -68,7 +68,6 @@ def classify(keyword):
         
         classification.append(first)
         classification.append(second)
-        print("1,2", first, second)
 
         third_level_categories = list(category_object[first][second].keys())
         compare_result = compare_sentences(keyword, third_level_categories)
@@ -79,7 +78,6 @@ def classify(keyword):
         max_index = compare_result.index(max_value)
         third = third_level_categories[max_index]
         classification.append(third)
-        print("3", third)
 
         fourth_level_categories_dict = category_object[first][second][third]
         if fourth_level_categories_dict is None:
@@ -97,7 +95,6 @@ def classify(keyword):
         max_index = compare_result.index(max_value)
         fourth = fourth_level_categories[max_index]
         classification.append(fourth)
-        print("4", fourth)
 
     except Exception as error:
         print(error)
