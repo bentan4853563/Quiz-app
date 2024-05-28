@@ -123,18 +123,18 @@ def classify(keyword):
                     break
         # Extract just the fourth level categories for comparison
         fourth_level_categories = [path[-1] for path in all_categories_with_paths]
-
+        print(len(fourth_level_categories), "\n")
         # Find the best match in the fourth level categories
         compare_results = compare_sentences(keyword, fourth_level_categories)
         if compare_results is None or not compare_results[0]:
             print("No matching fourth level category found.")
             return {keyword: classification}
-        
+        print(max_value_index, "\n")
         # Get the highest score index
         max_value_index = compare_results.index(max(compare_results))
         best_match_path = all_categories_with_paths[max_value_index]
         classification = best_match_path
-
+        print(classification)
     except Exception as error:
         print(f"An error occurred during classification: {error}")
 
