@@ -1,7 +1,6 @@
 import os
 import json
-import asyncio
-import aiohttp
+import requests   # Use requests instead of aiohttp
 from dotenv import load_dotenv
 
 load_dotenv()

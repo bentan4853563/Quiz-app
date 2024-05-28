@@ -34,7 +34,7 @@ QUIZ_PROMPT_FILE_PATH = 'Prompts/quiz.txt'
 STUB_PROMPT_FILE_PATH = 'Prompts/stub.txt'
 
 @app.route("/manually", methods=["POST"])
-async def lurnify_from_content():
+def lurnify_from_content():
     """Function fetch_data_from_url"""       
     try:
         data = request.get_json()
@@ -85,7 +85,7 @@ async def lurnify_from_content():
         return jsonify({"error": str(e)}), 500
  
 @app.route("/fetch", methods=["POST"])
-async def lurnify_from_url():
+def lurnify_from_url():
     """Function lurnify_from_url"""       
     try:
         data = request.get_json()
@@ -175,7 +175,7 @@ async def lurnify_from_url():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/lurnify-from-file', methods=['POST'])
-async def lurnify_from_file():
+def lurnify_from_file():
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
     file = request.files['file']
@@ -224,7 +224,7 @@ async def lurnify_from_file():
         return jsonify({'error': 'File type not allowed'}), 400
 
 @app.route("/get_quiz", methods=["POST"])
-async def generage_quiz():
+def generage_quiz():
     """Function analyze"""    
     data = request.get_json()
     stub = data["stub"]
