@@ -94,6 +94,7 @@ def summarize(text):
                 for res in response.choices[0].message.tool_calls:
                     output.append(res.function.arguments)
                 result = json.loads(output[0])
+                print("Before processing HashTag")
                 collections = process_hashtags(result["hash_tags"])
                 result["hash_tags"] = collections
                 return result
