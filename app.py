@@ -3,9 +3,11 @@ import time
 import math
 import json
 import asyncio
+import requests
 from dotenv import load_dotenv
 from flask_cors import CORS
 from flask import Flask, jsonify, request
+from bs4 import BeautifulSoup
 from werkzeug.utils import secure_filename
 from youtube_transcript_api import YouTubeTranscriptApi
 
