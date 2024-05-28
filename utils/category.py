@@ -129,9 +129,9 @@ def classify(keyword):
         if compare_results is None or not compare_results[0]:
             print("No matching fourth level category found.")
             return {keyword: classification}
-        print(max_value_index, "\n")
         # Get the highest score index
         max_value_index = compare_results.index(max(compare_results))
+        print(max_value_index, "\n")
         best_match_path = all_categories_with_paths[max_value_index]
         classification = best_match_path
         print(classification)
