@@ -9,7 +9,6 @@ from concurrent.futures import ThreadPoolExecutor
 from utils.mongodb import save_content
 from utils.content import split_content_evenly
 from utils.content import num_tokens_from_string
-from utils.category import process_hashtags
 
 load_dotenv()
 
