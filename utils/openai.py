@@ -176,6 +176,9 @@ def quiz(text):
             )
             print("token number of split", num_tokens_from_string(text, MODEL))
 
+            if not response.choices:  # Check if choices array is empty
+                raise ValueError("No choices available in response")
+
             if response.choices[0].message.tool_calls is not None:
                 output = []
                 for res in response.choices[0].message.tool_calls:
