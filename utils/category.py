@@ -103,16 +103,58 @@ def compare_sentences(source_sentence, sentences):
 
 #     return {keyword: classification}
 
+# def classify(keyword):
+#     try:
+#         classification = []
+
+#         # Flatten all category levels into a list of tuples containing the full path and the fourth level category
+#         all_categories_with_paths = []
+#         for first, second_level_dict in category_object.items():
+#             for second, third_level_dict in second_level_dict.items():
+#                 if isinstance(third_level_dict, dict):  # Ensure it's a dict before working with keys
+#                     for third, fourth_level_list_or_dict in third_level_dict.items():
+#                         if isinstance(fourth_level_list_or_dict, list):
+#                             for fourth in fourth_level_list_or_dict:
+#                                 all_categories_with_paths.append((first, second, third, fourth))
+#                         elif isinstance(fourth_level_list_or_dict, dict):
+#                             for fourth in fourth_level_list_or_dict.keys():
+#                                 all_categories_with_paths.append((first, second, third, fourth))
+#                         else:
+#                             break
+#                 else:
+#                     break
+#         # Extract just the fourth level categories for comparison
+#         fourth_level_categories = [path[-1] for path in all_categories_with_paths]
+#         print(len(fourth_level_categories))
+#         # Find the best match in the fourth level categories
+#         compare_results = compare_sentences(keyword, fourth_level_categories)
+#         if compare_results is None or not compare_results[0]:
+#             print("No matching fourth level category found.")
+#             return {keyword: classification}
+#         # Get the highest score index
+#         max_value_index = compare_results.index(max(compare_results))
+#         print(max_value_index)
+#         best_match_path = all_categories_with_paths[max_value_index]
+#         classification = best_match_path
+#         print(keyword, ":", classification, "\n")
+#     except Exception as error:
+#         print(f"An error occurred during classification: {error}")
+
+#     return {keyword: list(classification)}
+
 def classify(keyword):
     try:
         classification = []
 
         # Flatten all category levels into a list of tuples containing the full path and the fourth level category
         all_categories_with_paths = []
+        third_level_categories = []  # List to store third-level categories
+
         for first, second_level_dict in category_object.items():
             for second, third_level_dict in second_level_dict.items():
                 if isinstance(third_level_dict, dict):  # Ensure it's a dict before working with keys
                     for third, fourth_level_list_or_dict in third_level_dict.items():
+                        third_level_categories.append(third)  # Add third-level category to the list
                         if isinstance(fourth_level_list_or_dict, list):
                             for fourth in fourth_level_list_or_dict:
                                 all_categories_with_paths.append((first, second, third, fourth))
@@ -123,30 +165,44 @@ def classify(keyword):
                             break
                 else:
                     break
-        # Extract just the fourth level categories for comparison
-        fourth_level_categories = [path[-1] for path in all_categories_with_paths]
-        print(len(fourth_level_categories))
-        # Find the best match in the fourth level categories
+
+        # Find the best match in the third-level categories
+        compare_results = compare_sentences(keyword, third_level_categories)
+        if compare_results is None or not compare_results[0]:
+            print("No matching third level category found.")
+            return {keyword: classification}
+
+        # Get the highest score index for the third-level categories
+        max_value_index = compare_results.index(max(compare_results))
+        best_third_level_category = third_level_categories[max_value_index]
+
+        # Find all fourth-level categories under the best third-level category
+        corresponding_fourth_level_categories = [
+            path for path in all_categories_with_paths if path[2] == best_third_level_category
+        ]
+
+        # Extract just the fourth-level categories for comparison
+        fourth_level_categories = [path[-1] for path in corresponding_fourth_level_categories]
+        if not fourth_level_categories:
+            print("No corresponding fourth level categories found.")
+            return {keyword: classification}
+
+        # Find the best match in the fourth-level categories
         compare_results = compare_sentences(keyword, fourth_level_categories)
         if compare_results is None or not compare_results[0]:
             print("No matching fourth level category found.")
             return {keyword: classification}
-        # Get the highest score index
+
+        # Get the highest score index for the fourth-level categories
         max_value_index = compare_results.index(max(compare_results))
-        print(max_value_index)
-        best_match_path = all_categories_with_paths[max_value_index]
+        best_match_path = corresponding_fourth_level_categories[max_value_index]
         classification = best_match_path
         print(keyword, ":", classification, "\n")
+
     except Exception as error:
         print(f"An error occurred during classification: {error}")
 
     return {keyword: list(classification)}
-
-# def process_hashtags(hashtags):
-#     results = [classify(hashtag) for hashtag in hashtags]
-#     return results
-
-
 
 def process_hashtags(hashtags):
     def classify_threaded(hashtag):
