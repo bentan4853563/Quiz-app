@@ -237,7 +237,11 @@ def generage_quiz():
     return quiz
 
 @app.route("/collections-process", methods=["POST"])
-def process_hashtags(hashtags):
+def process_hashtags():
+    data = request.get_json()
+    hashtag = data["hashtag"]
+    print("hashtag", hashtag)
+    
     def classify_threaded(hashtag):
         return classify(hashtag)
 
