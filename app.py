@@ -228,6 +228,7 @@ def generage_quiz():
     """Function analyze"""    
     data = request.get_json()
     stub = data["stub"]
+    print("stub", stub)
     quiz = quiz_from_stub(stub)
 
     return quiz
