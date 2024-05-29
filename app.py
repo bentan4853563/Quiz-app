@@ -240,11 +240,11 @@ def generage_quiz():
 def process_hashtags():
     data = request.get_json()
     print(data)
-    hashtag = data["hashtag"]
-    print("hashtag", hashtag)
+    hashtags = data["hashtag"]
+    print("hashtag", hashtags)
 
-    def classify_threaded(hashtag):
-        return classify(hashtag)
+    def classify_threaded(hashtags):
+        return classify(hashtags)
 
     with ThreadPoolExecutor() as executor:
         # Submit all classification tasks to the thread pool
