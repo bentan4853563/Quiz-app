@@ -13,10 +13,7 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
 from youtube_transcript_api import YouTubeTranscriptApi
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
-
-from utils.category import classify
 from utils.mongodb import save_content
 from utils.file_read import process_file
 from utils.youtube import is_youtube_url
@@ -235,27 +232,7 @@ def generage_quiz():
     quiz = quiz_from_stub(stub)
 
     return quiz
-
-@app.route("/collections-process", methods=["POST"])
-def process_hashtags(hashtags):
-    def classify_threaded(hashtag):
-        return classify(hashtag)
-
-    with ThreadPoolExecutor() as executor:
-        # Submit all classification tasks to the thread pool
-        future_to_hashtag = {executor.submit(classify_threaded, hashtag): hashtag for hashtag in hashtags}
-        results = []
-
-        # Iterate over the completed futures
-        for future in as_completed(future_to_hashtag):
-            hashtag = future_to_hashtag[future]
-            try:
-                result = future.result()
-                results.append(result)
-            except Exception as e:
-                print(f"An error occurred during classification of hashtag {hashtag}: {e}")
-                
-    return results
+    
 
 @app.route("/update_prompts", methods=["POST"])
 def update_prompts():

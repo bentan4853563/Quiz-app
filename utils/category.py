@@ -3,6 +3,7 @@ import time
 import json
 import requests   # Use requests instead of aiohttp
 from dotenv import load_dotenv
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 load_dotenv()
@@ -203,4 +204,22 @@ def classify(keyword):
 
     return {keyword: list(classification)}
 
+def process_hashtags(hashtags):
+    def classify_threaded(hashtag):
+        return classify(hashtag)
 
+    with ThreadPoolExecutor() as executor:
+        # Submit all classification tasks to the thread pool
+        future_to_hashtag = {executor.submit(classify_threaded, hashtag): hashtag for hashtag in hashtags}
+        results = []
+
+        # Iterate over the completed futures
+        for future in as_completed(future_to_hashtag):
+            hashtag = future_to_hashtag[future]
+            try:
+                result = future.result()
+                results.append(result)
+            except Exception as e:
+                print(f"An error occurred during classification of hashtag {hashtag}: {e}")
+                
+    return results

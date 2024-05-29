@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 from utils.mongodb import save_content
 from utils.content import split_content_evenly
 from utils.content import num_tokens_from_string
+from utils.category import process_hashtags
 
 load_dotenv()
 
@@ -91,9 +92,9 @@ def summarize(text):
                 for res in response.choices[0].message.tool_calls:
                     output.append(res.function.arguments)
                 result = json.loads(output[0])
-                # print("Before processing HashTag")
-                # collections = process_hashtags(result["hash_tags"])
-                # result["hash_tags"] = collections
+                print("Before processing HashTag")
+                collections = process_hashtags(result["hash_tags"])
+                result["hash_tags"] = collections
                 return result
             
             # If we got a response but tool_calls is None, raise an exception to retry
