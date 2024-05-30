@@ -256,10 +256,11 @@ def process_hashtags():
             hashtag = future_to_hashtag[future]
             try:
                 result = future.result()
+                print(result)
                 results.append(result)
             except Exception as e:
                 print(f"An error occurred during classification of hashtag {hashtag}: {e}")
-    print(result)
+                
     return results
 
 @app.route("/update_prompts", methods=["POST"])
