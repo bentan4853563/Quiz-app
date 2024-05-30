@@ -259,7 +259,7 @@ def process_hashtags():
                 results.append(result)
             except Exception as e:
                 print(f"An error occurred during classification of hashtag {hashtag}: {e}")
-                
+    print(result)
     return results
 
 @app.route("/update_prompts", methods=["POST"])

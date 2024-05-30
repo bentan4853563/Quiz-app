@@ -196,7 +196,7 @@ def classify(keyword):
         max_value_index = compare_results.index(max(compare_results))
         best_match_path = corresponding_fourth_level_categories[max_value_index]
         classification = best_match_path
-        print(keyword, ":", classification, "\n")
+        # print(keyword, ":", classification, "\n")
 
     except Exception as error:
         print(f"An error occurred during classification: {error}")
