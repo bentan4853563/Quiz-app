@@ -245,7 +245,9 @@ def generage_quiz():
 @app.route("/search", methods=["POST"])
 def search_from_wiki():
     """"Function that generate lurnies from the contents that searched form wikipedia"""
-    search_term = request.get_data()
+    data = request.get_data()
+    search_term = data["search_term"]
+
     print(search_term)
 
     lurnies = []
