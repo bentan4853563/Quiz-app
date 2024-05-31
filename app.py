@@ -15,11 +15,11 @@ from werkzeug.utils import secure_filename
 from youtube_transcript_api import YouTubeTranscriptApi
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-
 from utils.category import classify
 from utils.mongodb import save_content
 from utils.file_read import process_file
 from utils.youtube import is_youtube_url
+from utils.wikipedia import is_wikipedia_url, get_content_from_url, search_wikipedia, get_wikipedia_page_content
 from utils.image import extract_cover_image
 from utils.openai import summarize, quiz_from_stub, generate_quizes
 from utils.content import num_tokens_from_string, split_content_evenly
@@ -115,6 +115,12 @@ def lurnify_from_url():
                     return jsonify({"error": str(e)}), 400
             else:
                 return jsonify({"error": "No YouTube video ID found in URL"}), 400
+        elif is_wikipedia_url(url):
+            media = "wikipedia"
+            try:
+                combined_text = get_content_from_url(url)
+            except Exception as e:
+                return jsonify({"error": str(e)}), 400
         elif url.lower().endswith(".pdf"):
             media = "PDF"
             try:
@@ -136,7 +142,7 @@ def lurnify_from_url():
             cover_image_url = extract_cover_image(url)
 
             text_elements = [
-                tag.get_text() for tag in soup.find_all(["p", "span", "a", "li"])
+                tag.get_text() for tag in soup.find_all(["p", "span", "a", "li","h1", "h2", "h3"])
             ]
             combined_text = ", ".join(text_elements)
         
@@ -235,6 +241,23 @@ def generage_quiz():
     quiz = quiz_from_stub(stub)
 
     return quiz
+
+@app.route("/search", methods=["POST"])
+def search_from_wiki():
+    """"Function that generate lurnies from the contents that searched form wikipedia"""
+    search_term = request.get_data()
+    print(search_term)
+
+    lurnies = []
+    search_results = search_wikipedia(search_term)
+    if search_results:
+        for article in search_results:
+            page_content = get_wikipedia_page_content(article['pageid'])
+            if page_content:
+                lurny = lurnify_from_content(page_content)
+                lurnies.append(lurny)
+                print(lurny, "\n")
+    return json.loads(lurnies)
 
 @app.route("/collections-process", methods=["POST"])
 def process_hashtags():
