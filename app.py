@@ -21,7 +21,7 @@ from utils.file_read import process_file
 from utils.youtube import is_youtube_url
 from utils.wikipedia import is_wikipedia_url, get_content_from_url, search_wikipedia, get_wikipedia_page_content
 from utils.image import extract_cover_image
-from utils.openai import summarize, quiz_from_stub, generate_quizes
+from utils.openai import summarize, quiz_from_stub, generate_quizes, from_content
 from utils.content import num_tokens_from_string, split_content_evenly
 from utils.prompt import read_prompt_file, update_prompt_file
 
@@ -43,46 +43,9 @@ def lurnify_from_content():
         data = request.get_json()
         combined_text = data["content"]
 
-        media = None
-        url = None
-        cover_image_url = None
+        result = from_content(combined_text)
 
-        start = time.time()
-
-        # Save content to DB
-        save_content(None, combined_text)
-        
-        # Calulate number of tokens for the certain gpt model
-        num_tokens = num_tokens_from_string(combined_text, MODEL)
-        print(num_tokens, len(combined_text))
-        
-        num_parts = math.ceil(num_tokens / 15000) 
-        # Split entire content to several same parts when content is large than gpt token limit
-        splits = split_content_evenly(combined_text, num_parts) 
-                
-        results = []
-        for split in splits: 
-            print("before summarization")
-            summary_content = summarize(split)
-            print("after summarization")
-            question_content = generate_quizes(split)
-            print("after quiz")
-
-            json_string = json.dumps(
-                {
-                    "summary_content": summary_content,
-                    "questions": question_content,
-                    "image": cover_image_url if cover_image_url is not None else "",
-                    "url": url,
-                    "media": media,
-                }
-            )
-            results.append(json_string)
-
-        end = time.time()
-        print(end - start, "s")
-
-        return jsonify(results)
+        return result
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

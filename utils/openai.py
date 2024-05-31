@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import math
 from openai import OpenAI
 from flask import jsonify
 from dotenv import load_dotenv
@@ -243,3 +244,45 @@ def quiz_from_stub(stub):
     for res in response.choices[0].message.tool_calls:
         output.append(res.function.arguments)
     return output[0]
+
+def from_content(content):
+    media = None
+    url = None
+    cover_image_url = None
+
+    start = time.time()
+
+    # Save content to DB
+    save_content(None, content)
+    
+    # Calulate number of tokens for the certain gpt model
+    num_tokens = num_tokens_from_string(content, MODEL)
+    print(num_tokens, len(content))
+    
+    num_parts = math.ceil(num_tokens / 15000) 
+    # Split entire content to several same parts when content is large than gpt token limit
+    splits = split_content_evenly(content, num_parts) 
+            
+    results = []
+    for split in splits: 
+        print("before summarization")
+        summary_content = summarize(split)
+        print("after summarization")
+        question_content = generate_quizes(split)
+        print("after quiz")
+
+        json_string = json.dumps(
+            {
+                "summary_content": summary_content,
+                "questions": question_content,
+                "image": cover_image_url if cover_image_url is not None else "",
+                "url": url,
+                "media": media,
+            }
+        )
+        results.append(json_string)
+
+    end = time.time()
+    print(end - start, "s")
+
+    return jsonify(results)
