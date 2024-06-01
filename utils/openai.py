@@ -271,18 +271,16 @@ def from_content(content):
         question_content = generate_quizes(split)
         print("after quiz")
 
-        json_string = json.dumps(
-            {
-                "summary_content": summary_content,
-                "questions": question_content,
-                "image": cover_image_url if cover_image_url is not None else "",
-                "url": url,
-                "media": media,
-            }
-        )
-        results.append(json_string)
+        result = {
+            "summary_content": summary_content,
+            "questions": question_content,
+            "image": cover_image_url if cover_image_url is not None else "",
+            "url": url,
+            "media": media,
+        }
+        results.append(result)
 
     end = time.time()
     print(end - start, "s")
 
-    return jsonify(results)
+    return results

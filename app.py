@@ -8,7 +8,7 @@ import PyPDF2
 import requests
 # from gevent import monkey
 from flask_cors import CORS
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, abort
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
@@ -21,7 +21,7 @@ from utils.file_read import process_file
 from utils.youtube import is_youtube_url
 from utils.wikipedia import is_wikipedia_url, get_content_from_url, search_wikipedia, get_wikipedia_page_content
 from utils.image import extract_cover_image
-from utils.openai import summarize, quiz_from_stub, generate_quizes, from_content
+from utils.openai import summarize, quiz_from_stub, generate_quizes, from_content,  quiz
 from utils.content import num_tokens_from_string, split_content_evenly
 from utils.prompt import read_prompt_file, update_prompt_file
 
@@ -125,7 +125,7 @@ def lurnify_from_url():
             print("before summarization")
             summary_content = summarize(split)
             print("after summarization")
-            question_content = generate_quizes(split)
+            question_content = quiz(split)
             print("after quiz")
 
             json_string = json.dumps(
@@ -207,22 +207,30 @@ def generage_quiz():
 
 @app.route("/search", methods=["POST"])
 def search_from_wiki():
-    """"Function that generate lurnies from the contents that searched form wikipedia"""
-    data = request.get_data()
-    search_term = data["search_term"]
+    """Function that generates lurnies from the contents searched from Wikipedia"""
+    print("search_from_wiki")
+    
+    # Try to parse JSON data or return a 400 error if the request is not JSON or is not properly formatted.
+    try:
+        data = request.get_json()
+        if 'search_term' not in data:
+            abort(400, description='search_term key is missing')
+    except Exception as e:
+        abort(400, description=str(e))
 
-    print(search_term)
+    search_term = data["search_term"]
 
     lurnies = []
     search_results = search_wikipedia(search_term)
+    search_results = search_results[:2]
     if search_results:
         for article in search_results:
             page_content = get_wikipedia_page_content(article['pageid'])
             if page_content:
-                lurny = lurnify_from_content(page_content)
+                lurny = from_content(str(page_content))
                 lurnies.append(lurny)
-                print(lurny, "\n")
-    return json.loads(lurnies)
+    print(lurnies)
+    return jsonify(lurnies)
 
 @app.route("/collections-process", methods=["POST"])
 def process_hashtags():
@@ -300,12 +308,12 @@ def allowed_file(filename):
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
-        port=5173,
+        port=5115,
         threaded=True,
         debug=True,
         use_reloader=False,
-        ssl_context=(
-            "/etc/letsencrypt/live/lurny.net/cert.pem",
-            "/etc/letsencrypt/live/lurny.net/privkey.pem",
-        ),
+        # ssl_context=(
+        #     "/etc/letsencrypt/live/lurny.net/cert.pem",
+        #     "/etc/letsencrypt/live/lurny.net/privkey.pem",
+        # ),
     )

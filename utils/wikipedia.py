@@ -22,7 +22,6 @@ def search_wikipedia(search_term):
 
     # Make the request to Wikipedia's API
     response = requests.get(url, params=params)
-
     # Check for a successful request
     if response.status_code == 200:
         return response.json()['query']['search']
@@ -101,10 +100,10 @@ def get_wikipedia_page_content(pageid):
         print(f"Error: {response.status_code}")
         return None
 
-# Example usage with previous search function
-search_results = search_wikipedia('Python programming')
-if search_results:
-    for article in search_results:
-        page_content = get_wikipedia_page_content(article['pageid'])
-        if page_content:
-            print(f"Title: {page_content['title']}\nURL: {page_content['url']}\nContent: {page_content['content']}\n")
+# # Example usage with previous search function
+# search_results = search_wikipedia('Python programming')
+# if search_results:
+#     for article in search_results:
+#         page_content = get_wikipedia_page_content(article['pageid'])
+#         if page_content:
+#             print(f"Title: {page_content['title']}\nURL: {page_content['url']}\nContent: {page_content['content']}\n")
